@@ -763,32 +763,63 @@ class IGuardApp {
 
       const orderNumber = `ORD-AUTO-${Date.now().toString().slice(-4)}`;
       const vehicleCode = this.currentPlate || "RCR-7661";
+      const caseId = `CASE-${Date.now().toString().slice(-6)}`;
+      await window.iguardAPI.checkHealth();
 
       // 1. Compile angles payload including differential damage flags
       const anglePayloadList = [];
 
-      readyAngleKeys.forEach(k => {
+      for (const k of readyAngleKeys) {
         const slot = this.slots[Number(k)];
-        const isNewDmg = slot.hasNewDamage || false;
-        const isPreDmg = slot.isPreExisting || false;
-        const sev = isNewDmg ? (slot.damageSeverity || "moderate") : "none";
-        const cScore = slot.cleanlinessScore || 100;
-        const cLevel = slot.cleanlinessLevel || (cScore < 70 ? "dirty" : "clean");
+        const imageType = Number(k);
+        let aiResult = {};
+
+        if (slot.dataUrl && window.iguardAPI.isBackendOnline) {
+          const postFile = await fetch(slot.dataUrl).then(response => response.blob());
+          const postImage = new File([postFile], `post-${imageType}.jpg`, {
+            type: postFile.type || "image/jpeg"
+          });
+
+          if (imageType >= 1 && imageType <= 4 && slot.preDataUrl) {
+            const preFile = await fetch(slot.preDataUrl).then(response => response.blob());
+            const preImage = new File([preFile], `pre-${imageType}.jpg`, {
+              type: preFile.type || "image/jpeg"
+            });
+            aiResult = await window.iguardAPI.inspectExterior(
+              preImage, postImage, orderNumber, vehicleCode, imageType, caseId
+            );
+          } else if (imageType === 10 || imageType === 11) {
+            aiResult = await window.iguardAPI.inspectInterior(
+              postImage, orderNumber, vehicleCode, imageType, caseId
+            );
+          } else {
+            aiResult = await window.iguardAPI.checkGuard(
+              postImage, orderNumber, vehicleCode, imageType, this.currentPlate || ""
+            );
+          }
+        }
+
+        const isNewDmg = aiResult.has_new_damage ?? slot.hasNewDamage ?? false;
+        const isPreDmg = aiResult.is_pre_existing ?? slot.isPreExisting ?? false;
+        const detectedDamage = aiResult.damage_detected ?? slot.damage ?? false;
+        const sev = aiResult.severity || (isNewDmg ? (slot.damageSeverity || "moderate") : "none");
+        const cScore = aiResult.score ?? aiResult.cleanliness_score ?? slot.cleanlinessScore ?? 100;
+        const cLevel = aiResult.cleanliness_level || slot.cleanlinessLevel || (cScore < 70 ? "dirty" : "clean");
 
         anglePayloadList.push({
-          image_type: Number(k),
+          image_type: imageType,
           view_name: slot.name,
-          guard_passed: true,
-          damage_detected: isNewDmg || isPreDmg || slot.damage,
+          guard_passed: aiResult.overall_passed ?? true,
+          damage_detected: detectedDamage || isNewDmg || isPreDmg,
           has_new_damage: isNewDmg,
           is_pre_existing: isPreDmg,
           damage_severity: sev,
-          damage_region: slot.damageRegion || (isNewDmg ? `${slot.name}新增車損` : null),
+          damage_region: aiResult.damage_region || slot.damageRegion || (isNewDmg ? `${slot.name}新增車損` : null),
           pre_photo_name: slot.preFilename || null,
           post_photo_name: slot.realFilename || null,
           cleanliness_level: cLevel,
           cleanliness_score: cScore,
-          detected_items: slot.detectedItems || []
+          detected_items: aiResult.detected_items || slot.detectedItems || []
         });
 
         // Update card runtime status
@@ -801,13 +832,13 @@ class IGuardApp {
         } else {
           slot.status = "passed";
         }
-      });
+      }
 
       // 2. Call Whole-Vehicle Comprehensive Evaluation API
       const vehiclePayload = {
         order_number: orderNumber,
         vehicle_code: vehicleCode,
-        case_id: `CASE-${Date.now().toString().slice(-6)}`,
+        case_id: caseId,
         angles: anglePayloadList
       };
 

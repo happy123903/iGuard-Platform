@@ -3,7 +3,7 @@
  * Communicates with FastAPI backend on localhost:8000, with intelligent fallback simulation.
  */
 
-const DEFAULT_API_BASE = "https://fool-scope-hang-bottles.trycloudflare.com";
+const DEFAULT_API_BASE = "https://grande-grammar-brilliant-listing.trycloudflare.com";
 
 class IGuardAPI {
   constructor() {
@@ -220,12 +220,13 @@ class IGuardAPI {
     };
   }
 
-  async inspectExterior(preFile, postFile, orderNumber, vehicleCode, imageType) {
+  async inspectExterior(preFile, postFile, orderNumber, vehicleCode, imageType, caseId = "") {
     if (this.isBackendOnline) {
       try {
         const formData = new FormData();
         formData.append("pre_file", preFile);
         formData.append("post_file", postFile);
+        formData.append("case_id", caseId || `CASE-${Date.now().toString().slice(-6)}`);
         formData.append("order_number", orderNumber);
         formData.append("vehicle_code", vehicleCode);
         formData.append("image_type", imageType);
@@ -272,11 +273,12 @@ class IGuardAPI {
     };
   }
 
-  async inspectInterior(file, orderNumber, vehicleCode, imageType) {
+  async inspectInterior(file, orderNumber, vehicleCode, imageType, caseId = "") {
     if (this.isBackendOnline) {
       try {
         const formData = new FormData();
         formData.append("file", file);
+        formData.append("case_id", caseId || `CASE-${Date.now().toString().slice(-6)}`);
         formData.append("order_number", orderNumber);
         formData.append("vehicle_code", vehicleCode);
         formData.append("image_type", imageType);
