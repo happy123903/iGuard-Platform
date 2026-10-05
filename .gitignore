@@ -16,6 +16,7 @@
 !.env.example
 
 # 2. 大型 AI 模型權重（檔案過大，不上傳）
+*.pt
 models/*.pt
 models/*.pth
 models/*.bin

@@ -67,26 +67,26 @@
     <section class="metric-cards-grid">
       <div class="metric-card green">
         <span class="metric-label">今日累積檢驗車輛數</span>
-        <span class="metric-val mono text-cyan" id="kpi-total-inspections">1,248 <span style="font-size: 14px; font-weight: normal; color: var(--text-muted);">輛</span></span>
-        <span class="metric-sub text-green" id="kpi-total-sub">較昨日同期增長 18.5%</span>
+        <span class="metric-val mono text-cyan" id="kpi-total-inspections">-- <span style="font-size: 14px; font-weight: normal; color: var(--text-muted);">輛</span></span>
+        <span class="metric-sub text-muted" id="kpi-total-sub">連線檢測中...</span>
       </div>
 
       <div class="metric-card green">
         <span class="metric-label">全自動直通放行率 (綠燈 >=90分)</span>
-        <span class="metric-val mono text-green" id="kpi-green-pass-rate">94.2%</span>
-        <span class="metric-sub" id="kpi-green-sub">1,176 輛次秒級自動還車上架</span>
+        <span class="metric-val mono text-green" id="kpi-green-pass-rate">--%</span>
+        <span class="metric-sub text-muted" id="kpi-green-sub">連線檢測中...</span>
       </div>
 
       <div class="metric-card yellow">
         <span class="metric-label">人工複審中 (黃燈 70~89分)</span>
-        <span class="metric-val mono text-yellow" id="kpi-yellow-review-count">12 <span style="font-size: 14px; font-weight: normal; color: var(--text-muted);">輛</span></span>
-        <span class="metric-sub" id="kpi-yellow-sub">平均複審時間: 1.8 分鐘</span>
+        <span class="metric-val mono text-yellow" id="kpi-yellow-review-count">-- <span style="font-size: 14px; font-weight: normal; color: var(--text-muted);">輛</span></span>
+        <span class="metric-sub text-muted" id="kpi-yellow-sub">連線檢測中...</span>
       </div>
 
       <div class="metric-card red">
         <span class="metric-label">即時阻斷派工中 (紅燈 <70分)</span>
-        <span class="metric-val mono text-red" id="kpi-red-alert-count">8 <span style="font-size: 14px; font-weight: normal; color: var(--text-muted);">輛</span></span>
-        <span class="metric-sub" id="kpi-red-sub">5 輛車損補漆 / 3 輛內裝深度清潔</span>
+        <span class="metric-val mono text-red" id="kpi-red-alert-count">-- <span style="font-size: 14px; font-weight: normal; color: var(--text-muted);">輛</span></span>
+        <span class="metric-sub text-muted" id="kpi-red-sub">連線檢測中...</span>
       </div>
     </section>
 
@@ -264,10 +264,10 @@
           this.triageChart = new Chart(ctx, {
             type: "doughnut",
             data: {
-              labels: ["綠色放行 (94.2%)", "黃色待審 (4.2%)", "紅色派工 (1.6%)"],
+              labels: ["連線檢測中..."],
               datasets: [{
-                data: [94.2, 4.2, 1.6],
-                backgroundColor: ["#10b981", "#f59e0b", "#ef4444"],
+                data: [1],
+                backgroundColor: ["#334155"],
                 borderWidth: 0
               }]
             },
@@ -313,9 +313,13 @@
               srcBadge.textContent = "Supabase 雲端實體資料庫串流";
             }
 
-            if (!this.isBackendOnline) {
+            if (!this.isBackendOnline || this.isFirstLoad) {
               this.isBackendOnline = true;
+              this.isFirstLoad = false;
               this.showToast("本地端成功連接！已切換至雲端實體資料庫", "success");
+              await this.loadDatabaseData();
+            } else {
+              // 心跳週期自動靜默刷新實體資料
               await this.loadDatabaseData();
             }
           } else {
@@ -358,12 +362,11 @@
             window.iguardSupabase.fetchRecentWorkOrders(50)
           ]);
 
-          if (inspections && inspections.length > 0) {
-            this.liveInspections = inspections;
-            this.liveWorkOrders = workOrders || [];
-            this.renderLiveInspectionsTable(inspections);
-            this.renderLiveWorkOrdersTable(this.liveWorkOrders);
-            this.updateLiveKPIs(inspections);
+          this.liveInspections = inspections || [];
+          this.liveWorkOrders = workOrders || [];
+
+          if (this.liveInspections.length > 0) {
+            this.renderLiveInspectionsTable(this.liveInspections);
           } else {
             // Table empty in database yet
             const tbody = document.getElementById("inspections-table-body");
@@ -383,6 +386,10 @@
               `;
             }
           }
+
+          // 核心：連線實體資料庫時，不論筆數是 0 還是多筆，永遠以實體資料庫統計，徹底移除模擬數據！
+          this.renderLiveWorkOrdersTable(this.liveWorkOrders);
+          this.updateLiveKPIs(this.liveInspections);
         } catch (err) {
           console.warn("loadDatabaseData error:", err);
         }
@@ -451,33 +458,72 @@
       }
 
       updateLiveKPIs(inspections) {
-        const totalCount = 1248 + inspections.length;
-        const greenCount = inspections.filter(i => i.risk_level === "green").length;
-        const yellowCount = inspections.filter(i => i.risk_level === "yellow").length;
-        const redCount = inspections.filter(i => i.risk_level === "red").length;
-        const totalEval = inspections.length;
+        // 嚴格依據真實資料庫筆數統計，絕不疊加模擬 1248 筆！
+        const list = inspections || [];
+        const totalCount = list.length;
+        const greenCount = list.filter(i => i.risk_level === "green").length;
+        const yellowCount = list.filter(i => i.risk_level === "yellow").length;
+        const redCount = list.filter(i => i.risk_level === "red").length;
 
-        const greenPct = totalEval > 0 ? ((greenCount / totalEval) * 100).toFixed(1) : 94.2;
+        const greenPct = totalCount > 0 ? ((greenCount / totalCount) * 100).toFixed(1) : "0.0";
+        const yellowPct = totalCount > 0 ? ((yellowCount / totalCount) * 100).toFixed(1) : "0.0";
+        const redPct = totalCount > 0 ? ((redCount / totalCount) * 100).toFixed(1) : "0.0";
 
         const kpiTotal = document.getElementById("kpi-total-inspections");
+        const kpiTotalSub = document.getElementById("kpi-total-sub");
         const kpiGreen = document.getElementById("kpi-green-pass-rate");
+        const kpiGreenSub = document.getElementById("kpi-green-sub");
         const kpiYellow = document.getElementById("kpi-yellow-review-count");
+        const kpiYellowSub = document.getElementById("kpi-yellow-sub");
         const kpiRed = document.getElementById("kpi-red-alert-count");
+        const kpiRedSub = document.getElementById("kpi-red-sub");
 
-        if (kpiTotal) kpiTotal.innerHTML = `${totalCount.toLocaleString()} <span style="font-size: 14px; font-weight: normal; color: var(--text-muted);">輛</span>`;
-        if (kpiGreen) kpiGreen.textContent = `${greenPct}%`;
-        if (kpiYellow) kpiYellow.innerHTML = `${yellowCount} <span style="font-size: 14px; font-weight: normal; color: var(--text-muted);">輛</span>`;
-        if (kpiRed) kpiRed.innerHTML = `${redCount} <span style="font-size: 14px; font-weight: normal; color: var(--text-muted);">輛</span>`;
+        if (kpiTotal) {
+          kpiTotal.innerHTML = `${totalCount.toLocaleString()} <span style="font-size: 14px; font-weight: normal; color: var(--text-muted);">輛</span>`;
+        }
+        if (kpiTotalSub) {
+          kpiTotalSub.textContent = totalCount > 0 ? `雲端資料庫累計 ${totalCount} 筆車檢` : "雲端實體資料庫連線中 (待建立第一筆車檢)";
+          kpiTotalSub.className = totalCount > 0 ? "metric-sub text-green" : "metric-sub text-muted";
+        }
+
+        if (kpiGreen) {
+          kpiGreen.textContent = totalCount > 0 ? `${greenPct}%` : "0.0%";
+        }
+        if (kpiGreenSub) {
+          kpiGreenSub.textContent = totalCount > 0 ? `${greenCount} 輛次秒級自動還車上架` : "目前無放行車次";
+          kpiGreenSub.className = totalCount > 0 ? "metric-sub text-green" : "metric-sub text-muted";
+        }
+
+        if (kpiYellow) {
+          kpiYellow.innerHTML = `${yellowCount} <span style="font-size: 14px; font-weight: normal; color: var(--text-muted);">輛</span>`;
+        }
+        if (kpiYellowSub) {
+          kpiYellowSub.textContent = totalCount > 0 ? `${yellowCount} 輛轉入人工快速複核` : "目前無待審車輛";
+          kpiYellowSub.className = totalCount > 0 ? "metric-sub text-yellow" : "metric-sub text-muted";
+        }
+
+        if (kpiRed) {
+          kpiRed.innerHTML = `${redCount} <span style="font-size: 14px; font-weight: normal; color: var(--text-muted);">輛</span>`;
+        }
+        if (kpiRedSub) {
+          kpiRedSub.textContent = totalCount > 0 ? `${redCount} 輛已立案派工整備` : "目前無派工車輛";
+          kpiRedSub.className = totalCount > 0 ? "metric-sub text-red" : "metric-sub text-muted";
+        }
 
         if (this.triageChart) {
-          const yellowPct = totalEval > 0 ? ((yellowCount / totalEval) * 100).toFixed(1) : 4.2;
-          const redPct = totalEval > 0 ? ((redCount / totalEval) * 100).toFixed(1) : 1.6;
-          this.triageChart.data.datasets[0].data = [parseFloat(greenPct), parseFloat(yellowPct), parseFloat(redPct)];
-          this.triageChart.data.labels = [
-            `綠色放行 (${greenPct}%)`,
-            `黃色待審 (${yellowPct}%)`,
-            `紅色派工 (${redPct}%)`
-          ];
+          if (totalCount === 0) {
+            this.triageChart.data.datasets[0].data = [1];
+            this.triageChart.data.datasets[0].backgroundColor = ["#334155"];
+            this.triageChart.data.labels = ["等待新車檢接入 (0 筆)"];
+          } else {
+            this.triageChart.data.datasets[0].data = [parseFloat(greenPct), parseFloat(yellowPct), parseFloat(redPct)];
+            this.triageChart.data.datasets[0].backgroundColor = ["#10b981", "#f59e0b", "#ef4444"];
+            this.triageChart.data.labels = [
+              `綠色放行 (${greenPct}%)`,
+              `黃色待審 (${yellowPct}%)`,
+              `紅色派工 (${redPct}%)`
+            ];
+          }
           this.triageChart.update();
         }
       }
@@ -557,19 +603,40 @@
           `;
         }
 
-        // Reset KPIs
+        // Reset KPIs for offline simulation
         const kpiTotal = document.getElementById("kpi-total-inspections");
+        const kpiTotalSub = document.getElementById("kpi-total-sub");
         const kpiGreen = document.getElementById("kpi-green-pass-rate");
+        const kpiGreenSub = document.getElementById("kpi-green-sub");
         const kpiYellow = document.getElementById("kpi-yellow-review-count");
+        const kpiYellowSub = document.getElementById("kpi-yellow-sub");
         const kpiRed = document.getElementById("kpi-red-alert-count");
+        const kpiRedSub = document.getElementById("kpi-red-sub");
 
         if (kpiTotal) kpiTotal.innerHTML = `1,248 <span style="font-size: 14px; font-weight: normal; color: var(--text-muted);">輛</span>`;
+        if (kpiTotalSub) {
+          kpiTotalSub.textContent = "較昨日同期增長 18.5% (模擬展示數據)";
+          kpiTotalSub.className = "metric-sub text-green";
+        }
         if (kpiGreen) kpiGreen.textContent = "94.2%";
+        if (kpiGreenSub) {
+          kpiGreenSub.textContent = "1,176 輛次秒級自動還車上架 (模擬)";
+          kpiGreenSub.className = "metric-sub";
+        }
         if (kpiYellow) kpiYellow.innerHTML = `12 <span style="font-size: 14px; font-weight: normal; color: var(--text-muted);">輛</span>`;
+        if (kpiYellowSub) {
+          kpiYellowSub.textContent = "平均複審時間: 1.8 分鐘 (模擬)";
+          kpiYellowSub.className = "metric-sub";
+        }
         if (kpiRed) kpiRed.innerHTML = `8 <span style="font-size: 14px; font-weight: normal; color: var(--text-muted);">輛</span>`;
+        if (kpiRedSub) {
+          kpiRedSub.textContent = "5 輛車損補漆 / 3 輛內裝深度清潔 (模擬)";
+          kpiRedSub.className = "metric-sub";
+        }
 
         if (this.triageChart) {
           this.triageChart.data.datasets[0].data = [94.2, 4.2, 1.6];
+          this.triageChart.data.datasets[0].backgroundColor = ["#10b981", "#f59e0b", "#ef4444"];
           this.triageChart.data.labels = ["綠色放行 (94.2%)", "黃色待審 (4.2%)", "紅色派工 (1.6%)"];
           this.triageChart.update();
         }

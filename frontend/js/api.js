@@ -1,9 +1,9 @@
-/**
+﻿/**
  * iGuard — Backend API Client Module
  * Communicates with FastAPI backend on localhost:8000, with intelligent fallback simulation.
  */
 
-const DEFAULT_API_BASE = "https://sri-turned-fountain-strict.trycloudflare.com";
+const DEFAULT_API_BASE = "https://tribunal-interactive-army-lodging.trycloudflare.com";
 
 class IGuardAPI {
   constructor() {
