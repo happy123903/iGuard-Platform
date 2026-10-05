@@ -397,7 +397,7 @@
               <td><span class="mono">${extScore} 分</span></td>
               <td><span class="mono">${intScore} 分</span></td>
               <td><strong class="${colorClass} mono">${overallScore} 分</strong></td>
-              <td><span class="${colorClass}">${abnormalNote}</span></td>
+              <td class="abnormal-note-cell"><span class="abnormal-note ${colorClass}">${abnormalNote}</span></td>
               <td><span class="triage-badge ${tier}">${tierZh}</span></td>
               <td><button class="btn ${tier === 'red' ? 'btn-primary' : 'btn-secondary'}" style="padding: 3px 8px; font-size: 11px;" onclick="window.adminWarRoom.openInspectionDiag('${item.case_id}')">檢視</button></td>
             </tr>
@@ -686,8 +686,10 @@
 
         const targetVehicle = record.vehicle_code || "未知車輛";
         const damageRecords = caseRecords.filter(item =>
-          Boolean(item.damage_detected) ||
-          item.risk_level === "red"
+          (item.case_id || "").includes("-ANGLE-") &&
+          Boolean(item.damage_detected) &&
+          Boolean(item.mask_overlay_url) &&
+          !item.mask_overlay_url.includes("/dispatch/")
         );
 
         if (title) {

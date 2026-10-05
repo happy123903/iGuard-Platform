@@ -916,6 +916,21 @@ h1, h2, h3, h4, h5, h6 {
   word-break: keep-all;
 }
 
+.custom-table .abnormal-note-cell {
+  min-width: 180px;
+  max-width: 280px;
+  white-space: normal;
+}
+
+.custom-table .abnormal-note {
+  display: block;
+  max-width: 280px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  line-height: 1.6;
+}
+
 .custom-table tr:hover td {
   background: rgba(255, 255, 255, 0.03);
 }
@@ -1847,4 +1862,3 @@ h1, h2, h3, h4, h5, h6 {
 .report-pulse-update {
   animation: reportPulseAnim 1.2s ease-out;
 }
-
