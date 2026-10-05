@@ -353,13 +353,21 @@
 
       async loadDatabaseData() {
         try {
-          if (!window.iguardSupabase || !window.iguardSupabase.isReady()) {
-            return;
-          }
-          const [inspections, workOrders] = await Promise.all([
-            window.iguardSupabase.fetchRecentInspections(50),
-            window.iguardSupabase.fetchRecentWorkOrders(50)
+          if (!window.iguardAPI) return;
+          const health = await window.iguardAPI.checkHealth();
+          if (!health.online) return;
+          const apiBase = window.iguardAPI.apiBase;
+          const [inspectionsResponse, workOrdersResponse] = await Promise.all([
+            fetch(`${apiBase}/api/v1/inspections?limit=50`),
+            fetch(`${apiBase}/api/v1/work-orders`)
           ]);
+          if (!inspectionsResponse.ok || !workOrdersResponse.ok) {
+            throw new Error(`管理資料 API 回應錯誤：${inspectionsResponse.status}/${workOrdersResponse.status}`);
+          }
+          const inspectionsPayload = await inspectionsResponse.json();
+          const workOrdersPayload = await workOrdersResponse.json();
+          const inspections = inspectionsPayload.data || [];
+          const workOrders = workOrdersPayload.data || [];
 
           this.liveInspections = inspections || [];
           this.liveWorkOrders = workOrders || [];

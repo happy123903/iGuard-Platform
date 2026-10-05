@@ -40,6 +40,7 @@ from app.database import (
     is_supabase_configured,
     get_supabase_client,
     insert_inspection,
+    get_recent_inspections,
     get_inspection,
     get_unreviewed_cases,
     insert_work_order,
@@ -823,7 +824,7 @@ async def list_inspections(limit: int = Query(50, ge=1, le=200)):
     if not is_supabase_configured():
         return {"data": [], "message": "Supabase 未設定，此為本機模式"}
     try:
-        cases = await get_unreviewed_cases(limit=limit)
+        cases = await get_recent_inspections(limit=limit)
         return {"data": cases}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

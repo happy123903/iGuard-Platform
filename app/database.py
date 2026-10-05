@@ -78,6 +78,19 @@ async def get_unreviewed_cases(limit: int = 50) -> list[dict]:
     return result.data or []
 
 
+async def get_recent_inspections(limit: int = 50) -> list[dict]:
+    """取得近期所有檢驗案件，供後端管理 API 使用。"""
+    client = get_supabase_client()
+    result = (
+        client.table("inspections")
+        .select("*")
+        .order("created_at", desc=True)
+        .limit(limit)
+        .execute()
+    )
+    return result.data or []
+
+
 # ============================================================
 # 工單 CRUD
 # ============================================================
