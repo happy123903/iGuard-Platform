@@ -3,7 +3,7 @@
  * Communicates with FastAPI backend on localhost:8000, with intelligent fallback simulation.
  */
 
-const DEFAULT_API_BASE = "https://burn-agreed-ads-colors.trycloudflare.com";
+const DEFAULT_API_BASE = "https://sri-turned-fountain-strict.trycloudflare.com";
 
 class IGuardAPI {
   constructor() {
@@ -73,13 +73,30 @@ class IGuardAPI {
       }
     } catch (err) {}
 
-    // 2. 從 Supabase 雲端自動尋標（跨電腦/跨裝置零設定直連）
+    // 2. 若為本機環境，嘗試 127.0.0.1:8000 直連
+    if (this.apiBase !== "http://127.0.0.1:8000") {
+      try {
+        const localRes = await fetch("http://127.0.0.1:8000/health", {
+          method: "GET",
+          headers: { "Accept": "application/json" }
+        });
+        if (localRes.ok) {
+          const localData = await localRes.json();
+          this.apiBase = "http://127.0.0.1:8000";
+          localStorage.setItem("iguard_api_base", "http://127.0.0.1:8000");
+          this.isBackendOnline = true;
+          return { online: true, data: localData };
+        }
+      } catch (errLocal) {}
+    }
+
+    // 3. 從 Supabase 雲端自動尋標（跨電腦/跨裝置零設定直連）
     const discovery = await this.discoverApiFromSupabase();
     if (discovery && discovery.online) {
       return discovery;
     }
 
-    // 3. 回退預設網址
+    // 4. 回退預設網址
     if (this.apiBase !== DEFAULT_API_BASE && DEFAULT_API_BASE) {
       try {
         const res2 = await fetch(`${DEFAULT_API_BASE}/health`, {

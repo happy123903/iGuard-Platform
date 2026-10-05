@@ -168,26 +168,33 @@ namespace IGuardLauncher
                     {
                         urlCaptured = true;
                         string tunnelUrl = m.Value;
-                        string webUrl = "https://happy123903.github.io/iGuard-Platform/?api=" + tunnelUrl;
-
                         Console.WriteLine("\n");
                         Console.ForegroundColor = ConsoleColor.Green;
                         Console.WriteLine("===============================================================================");
                         Console.WriteLine("  🚀【Cloudflare 公網穿透通道已成功建立！】");
-                        Console.WriteLine("  👉 您的 API 公網網址: " + tunnelUrl);
-                        Console.WriteLine("  👉 您的 GitHub Pages 專屬直連網址: ");
-                        Console.WriteLine("     " + webUrl);
+                        Console.WriteLine("  👉 您的 5090 API 公網網址: " + tunnelUrl);
+                        Console.WriteLine("  🌐 全球任何電腦皆可直接造訪您的前端網頁進行檢驗：");
+                        Console.WriteLine("     https://happy123903.github.io/iGuard-Platform/");
                         Console.WriteLine("===============================================================================");
                         Console.ResetColor();
 
+                        // 向本地 FastAPI 請求向 Supabase 廣播當前 Tunnel 網址
                         try
                         {
-                            Process.Start(webUrl);
-                            Console.ForegroundColor = ConsoleColor.Cyan;
-                            Console.WriteLine("  🌐 [自動啟動] 已自動為您在瀏覽器開啟前端頁面 (自帶 5090 連線金鑰)！");
-                            Console.ResetColor();
+                            using (var wc = new System.Net.WebClient())
+                            {
+                                wc.Encoding = Encoding.UTF8;
+                                wc.UploadString("http://127.0.0.1:8000/api/v1/system/register-tunnel?url=" + Uri.EscapeDataString(tunnelUrl), "POST", "");
+                                Console.ForegroundColor = ConsoleColor.Cyan;
+                                Console.WriteLine("  ☁️ [雲端廣播] 已自動將此 5090 網址登錄至 Supabase 雲端！");
+                                Console.WriteLine("     (其他裝置開啟 GitHub Pages 會自動從 Supabase 獲取此網址，完全免手動設定！)");
+                                Console.ResetColor();
+                            }
                         }
-                        catch {}
+                        catch (Exception regEx)
+                        {
+                            Console.WriteLine("  [提示] 廣播網址至 Supabase 略過: " + regEx.Message);
+                        }
 
                         // 自動更新 frontend/js/api.js 中的 DEFAULT_API_BASE
                         try
