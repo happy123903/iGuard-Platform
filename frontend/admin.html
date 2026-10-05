@@ -662,7 +662,22 @@
 
         if (!modal || !content) return;
 
-        const caseRecords = this.liveInspections.filter(i => i.case_id === caseId);
+        let caseRecords = this.liveInspections.filter(i => i.case_id === caseId);
+        if (window.iguardAPI && window.iguardAPI.isBackendOnline) {
+          try {
+            const response = await fetch(
+              `${window.iguardAPI.apiBase}/api/v1/inspections/${encodeURIComponent(caseId)}`
+            );
+            if (response.ok) {
+              const payload = await response.json();
+              if (Array.isArray(payload.data) && payload.data.length > 0) {
+                caseRecords = payload.data;
+              }
+            }
+          } catch (error) {
+            console.warn("讀取案件全部角度失敗:", error);
+          }
+        }
         const record = caseRecords[0] || {
           case_id: caseId,
           vehicle_code: vehicleCode || "RCR-7661",
@@ -691,14 +706,15 @@
               <div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid var(--border-subtle); background: var(--bg-surface-elevated); flex-wrap: wrap; gap: 8px;">
                 <div style="font-weight: 700; font-size: 15px; color: var(--text-primary);">
                   <span style="color: #ef4444; font-size: 16px;">●</span>
-                  【視角 #${damageRecord.image_type || index + 1}】AI 車損刮痕圈選標記
+                  【視角 #${damageRecord.image_type || index + 1} ${damageRecord.view_name || ""}】AI 車損刮痕圈選標記
                 </div>
                 <span class="triage-badge red">本次租車新增車損責任</span>
               </div>
               <div style="padding: 16px; background: #070a12; text-align: center;">${imageHtml}</div>
               <div style="padding: 16px 18px; font-size: 13px; line-height: 1.8; color: var(--text-secondary); background: var(--bg-surface);">
                 • <strong>受損部位</strong>：${damageRegion}<br>
-                • <strong>AI 判定</strong>：已檢出新增車損，保留此角度車損標記供人工複核與派工。
+                • <strong>AI 像素級分割標記</strong>：Meta SAM 2.1 高精度多邊形分割遮罩，保留此角度的實際 AI 標記。<br>
+                • <strong>責任歸屬與處置</strong>：經與取車基準照比對，判定為<strong>【租客本次租車新增車損責任】</strong>，已保留供人工複核與派工。
               </div>
             </div>
           `;

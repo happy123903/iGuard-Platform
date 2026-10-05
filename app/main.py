@@ -41,6 +41,7 @@ from app.database import (
     get_supabase_client,
     insert_inspection,
     get_recent_inspections,
+    get_inspections_by_case,
     get_inspection,
     get_unreviewed_cases,
     insert_work_order,
@@ -473,8 +474,11 @@ async def exterior_inspect(
             overlay_url = await upload_image(temp_path, storage_path)
 
             # 寫入 inspections 表
+            # The legacy schema has a unique constraint on case_id. Store each
+            # angle under a stable derived key; the whole-vehicle row keeps the
+            # public case_id used by work orders and the operations dashboard.
             await insert_inspection({
-                "case_id": case_id,
+                "case_id": f"{case_id}-ANGLE-{image_type}",
                 "order_number": order_number,
                 "vehicle_code": vehicle_code,
                 "image_type": image_type,
@@ -549,7 +553,7 @@ async def interior_inspect(
             hud_url = await upload_image(temp_path, storage_path)
 
             await insert_inspection({
-                "case_id": case_id,
+                "case_id": f"{case_id}-ANGLE-{image_type}",
                 "order_number": order_number,
                 "vehicle_code": vehicle_code,
                 "image_type": image_type,
@@ -824,8 +828,20 @@ async def list_inspections(limit: int = Query(50, ge=1, le=200)):
     if not is_supabase_configured():
         return {"data": [], "message": "Supabase 未設定，此為本機模式"}
     try:
-        cases = await get_recent_inspections(limit=limit)
-        return {"data": cases}
+        cases = await get_recent_inspections(limit=min(limit * 10, 200))
+        cases = [case for case in cases if "-ANGLE-" not in case.get("case_id", "")]
+        return {"data": cases[:limit]}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/v1/inspections/{case_id}", tags=["Management"])
+async def list_case_inspections(case_id: str):
+    """取得單一案件全部角度，供戰情室車損標記檢視使用。"""
+    if not is_supabase_configured():
+        return {"data": [], "message": "Supabase 未設定，此為本機模式"}
+    try:
+        return {"data": await get_inspections_by_case(case_id)}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

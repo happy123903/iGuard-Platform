@@ -64,6 +64,25 @@ async def get_inspection(case_id: str) -> dict | None:
     return result.data[0] if result.data else None
 
 
+async def get_inspections_by_case(case_id: str) -> list[dict]:
+    """取得同一案件的全部角度檢驗紀錄。"""
+    client = get_supabase_client()
+    base_result = (
+        client.table("inspections")
+        .select("*")
+        .eq("case_id", case_id)
+        .execute()
+    )
+    angle_result = (
+        client.table("inspections")
+        .select("*")
+        .like("case_id", f"{case_id}-ANGLE-%")
+        .execute()
+    )
+    records = (base_result.data or []) + (angle_result.data or [])
+    return sorted(records, key=lambda item: item.get("image_type") or 0)
+
+
 async def get_unreviewed_cases(limit: int = 50) -> list[dict]:
     """取得待覆核案件（黃色 + 紅色）"""
     client = get_supabase_client()
