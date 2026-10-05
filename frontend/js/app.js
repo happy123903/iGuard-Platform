@@ -49,9 +49,10 @@ class IGuardApp {
         isPreExisting: false, // 借車前既有舊痕 (免責不扣分)
         damageSeverity: "none",
         damageRegion: null,
-        cleanlinessScore: 100,
-        cleanlinessLevel: "clean",
+        cleanlinessScore: null,
+        cleanlinessLevel: null,
         detectedItems: [],
+        aiAnalyzed: false,
 
         // Pre-trip (取車)
         preFile: null,
@@ -234,14 +235,6 @@ class IGuardApp {
       /\.(jpg|jpeg|png|jfif|webp)$/i.test(f.name)
     );
 
-    // Identify if folder is a known claim damage case
-    const isDamageCase = /索賠|車損|damage|claim|rcr-7661|rcw-8160|rcw-8382|rcw-9206|rda-7093|rdb-6729|rde-0073|rde-9932|rdh-2261|rdh-3092|rdj-0772|rdj-0793|rdl-5171|rdl-7836|rdl-8265|rdl-9262|rdq-1950|rdu-5671|rdu-6956|rdu-9162|rdx-1085|rdx-2376|rdy-6382|rdz-0171|rdz-0187|rfb-2091|rfd-0332|rfh-8075/i.test(
-      folderName
-    );
-
-    // Identify if folder is a pre-existing scratch test case
-    const isPreExistingCase = /舊痕|舊傷|既有|exempt|pre-existing/i.test(folderName);
-
     let matchedFilesCount = 0;
 
     imageFiles.forEach(file => {
@@ -279,46 +272,18 @@ class IGuardApp {
       }
     });
 
-    // Configure differential damage detection
+    // Clear any previous AI result. A selected photo is not an AI result.
     this.angleDefs.forEach(def => {
       const slot = this.slots[def.type];
-      const itype = def.type;
-
-      if (itype <= 4) {
-        if (isDamageCase) {
-          const isDmgAngle = folderName.toUpperCase().includes("RCR-7661")
-            ? itype === 3
-            : (itype === 3 || itype === 2);
-
-          if (isDmgAngle) {
-            slot.damage = true;
-            slot.hasNewDamage = true;
-            slot.isPreExisting = false;
-            slot.damageSeverity = "moderate";
-            slot.damageRegion = itype === 3 ? "左後保險桿擦傷" : "右前保險桿刮痕";
-          } else {
-            slot.damage = false;
-            slot.hasNewDamage = false;
-            slot.isPreExisting = false;
-          }
-        } else if (isPreExistingCase) {
-          if (itype === 2 || itype === 3) {
-            slot.damage = true;
-            slot.hasNewDamage = false;
-            slot.isPreExisting = true;
-            slot.damageSeverity = "none";
-            slot.damageRegion = itype === 2 ? "右前輪弧細痕(借車前舊痕)" : "左後葉子板微刮(借車前舊痕)";
-          }
-        } else {
-          slot.damage = false;
-          slot.hasNewDamage = false;
-          slot.isPreExisting = false;
-        }
-      } else {
-        slot.cleanlinessScore = 100;
-        slot.cleanlinessLevel = "clean";
-        slot.detectedItems = [];
-      }
+      slot.damage = false;
+      slot.hasNewDamage = false;
+      slot.isPreExisting = false;
+      slot.damageSeverity = "none";
+      slot.damageRegion = null;
+      slot.cleanlinessScore = null;
+      slot.cleanlinessLevel = null;
+      slot.detectedItems = [];
+      slot.aiAnalyzed = false;
     });
 
     // Check for missing angles and update UI
@@ -506,14 +471,17 @@ class IGuardApp {
       } else if (slot.status === "alert") {
         statusPillClass = "alert";
         statusPillText = "檢出新車損";
+      } else if (slot.aiAnalyzed) {
+        statusPillClass = "ready";
+        statusPillText = "已完成辨識";
       } else {
         statusPillClass = "ready";
-        statusPillText = "已備妥還車照";
+        statusPillText = "尚未辨識";
       }
 
       // Diff tag for exterior
       let diffTagHtml = "";
-      if (def.category === "ext" && hasPhoto) {
+      if (def.category === "ext" && hasPhoto && slot.aiAnalyzed) {
         if (slot.hasNewDamage) {
           diffTagHtml = `
             <div style="margin-bottom: 6px;">
@@ -539,10 +507,16 @@ class IGuardApp {
             </div>
           `;
         }
-      } else if (def.category === "int" && hasPhoto) {
+      } else if (def.category === "int" && hasPhoto && slot.aiAnalyzed) {
         diffTagHtml = `
           <div style="margin-bottom: 6px;">
-            <span class="slot-diff-tag clean">座艙整潔 100分</span>
+            <span class="slot-diff-tag clean">座艙整潔 ${slot.cleanlinessScore}分</span>
+          </div>
+        `;
+      } else if (hasPhoto && !slot.aiAnalyzed) {
+        diffTagHtml = `
+          <div style="margin-bottom: 6px;">
+            <span class="slot-diff-tag">尚未辨識</span>
           </div>
         `;
       }
@@ -799,17 +773,30 @@ class IGuardApp {
           }
         }
 
-        const isNewDmg = aiResult.has_new_damage ?? slot.hasNewDamage ?? false;
+        const analysisSucceeded = Object.keys(aiResult).length > 0;
+        const isNewDmg = aiResult.has_new_damage ?? false;
         const isPreDmg = aiResult.is_pre_existing ?? slot.isPreExisting ?? false;
-        const detectedDamage = aiResult.damage_detected ?? slot.damage ?? false;
-        const sev = aiResult.severity || (isNewDmg ? (slot.damageSeverity || "moderate") : "none");
-        const cScore = aiResult.score ?? aiResult.cleanliness_score ?? slot.cleanlinessScore ?? 100;
-        const cLevel = aiResult.cleanliness_level || slot.cleanlinessLevel || (cScore < 70 ? "dirty" : "clean");
+        const detectedDamage = aiResult.damage_detected ?? false;
+        const sev = aiResult.severity || "none";
+        const cScore = aiResult.score ?? aiResult.cleanliness_score ?? null;
+        const cLevel = aiResult.cleanliness_level || null;
+
+        slot.aiAnalyzed = analysisSucceeded;
+        if (analysisSucceeded) {
+          slot.damage = detectedDamage;
+          slot.hasNewDamage = isNewDmg;
+          slot.isPreExisting = isPreDmg;
+          slot.damageSeverity = sev;
+          slot.damageRegion = aiResult.damage_region || null;
+          slot.cleanlinessScore = cScore;
+          slot.cleanlinessLevel = cLevel;
+          slot.detectedItems = aiResult.detected_items || [];
+        }
 
         anglePayloadList.push({
           image_type: imageType,
           view_name: slot.name,
-          guard_passed: aiResult.overall_passed ?? true,
+          guard_passed: aiResult.overall_passed ?? false,
           damage_detected: detectedDamage || isNewDmg || isPreDmg,
           has_new_damage: isNewDmg,
           is_pre_existing: isPreDmg,
@@ -822,8 +809,10 @@ class IGuardApp {
           detected_items: aiResult.detected_items || slot.detectedItems || []
         });
 
-        // Update card runtime status
-        if (isNewDmg) {
+        // Update card runtime status only after an actual AI response.
+        if (!analysisSucceeded) {
+          slot.status = "ready";
+        } else if (isNewDmg) {
           slot.status = "alert";
         } else if (isPreDmg) {
           slot.status = "warn";
@@ -832,6 +821,8 @@ class IGuardApp {
         } else {
           slot.status = "passed";
         }
+
+        this.renderSlotsGrid();
       }
 
       // 2. Call Whole-Vehicle Comprehensive Evaluation API
@@ -875,14 +866,6 @@ class IGuardApp {
 
     panel.scrollIntoView({ behavior: "smooth", block: "nearest" });
 
-    // Track inspection run count and timestamp
-    this.inspectionRunCount = (this.inspectionRunCount || 0) + 1;
-    const timestampElem = document.getElementById("report-timestamp-text");
-    if (timestampElem) {
-      const timeStr = new Date().toLocaleTimeString('zh-TW', { hour12: false });
-      timestampElem.innerHTML = `已完成檢驗 (第 <strong>${this.inspectionRunCount}</strong> 次) • 判定時間: <strong>${timeStr}</strong>`;
-    }
-
     // Hero Score & Triage Badge
     const scoreNum = document.getElementById("report-overall-score");
     const badge = document.getElementById("vehicle-triage-badge");
@@ -908,7 +891,7 @@ class IGuardApp {
     if (actionTitle) {
       actionTitle.textContent =
         tier === "green"
-          ? "次秒級全自動放行上架"
+          ? "自動放行上架"
           : (tier === "yellow" ? "營運戰情室人工快速複核" : "強制阻斷預約並立案派工");
     }
 

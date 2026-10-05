@@ -156,9 +156,8 @@
       <div class="panel-header">
         <div class="panel-title">
           <svg class="ui-icon text-cyan" viewBox="0 0 24 24"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
-          全車綜合健康度報告 (Whole-Vehicle Assessment)
+          全車綜合健康度報告
         </div>
-        <span class="triage-badge green" id="vehicle-triage-badge">綠色合格 (>=90分)</span>
       </div>
 
           <!-- Hero Score Banner -->
@@ -168,7 +167,7 @@
               <span class="hero-score-denom">/ 100 分</span>
             </div>
             <div style="text-align: right;">
-              <div style="font-size: 15px; font-weight: 700; color: var(--text-primary);" id="report-action-title">次秒級全自動放行上架</div>
+              <div style="font-size: 15px; font-weight: 700; color: var(--text-primary);" id="report-action-title">自動放行上架</div>
               <div style="font-size: 12px; color: var(--text-muted);" id="report-case-id">案件代碼: CASE-20261003</div>
             </div>
           </div>
@@ -226,9 +225,6 @@
 
           <!-- Diagnostic Trigger Button & Report Action Bar -->
           <div class="mt-16" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; padding-top: 14px; border-top: 1px solid var(--border-subtle);">
-            <div style="font-size: 12px; color: var(--text-muted);" id="report-timestamp-text">
-              <!-- Timestamp and execution sequence populated here -->
-            </div>
             <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
               <button class="btn btn-primary" id="btn-rerun-inspection-report" onclick="window.iguardApp.runFullInspection()">
                 <svg class="ui-icon" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
