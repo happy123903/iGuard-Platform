@@ -164,7 +164,7 @@
           <!-- Hero Score Banner -->
           <div class="vehicle-score-hero">
             <div class="hero-score-badge">
-              <span class="hero-score-num text-green" id="report-overall-score">96</span>
+              <span class="hero-score-num text-green" id="report-overall-score">100</span>
               <span class="hero-score-denom">/ 100 分</span>
             </div>
             <div style="text-align: right;">
@@ -189,10 +189,10 @@
             <div class="dim-score-box">
               <div class="dim-score-header">
                 <span>車內座艙整潔度 (比重 55%)</span>
-                <span class="mono" style="color: #c084fc;" id="report-int-score">96 分</span>
+                <span class="mono" style="color: #c084fc;" id="report-int-score">100 分</span>
               </div>
               <div class="dim-progress-track">
-                <div class="dim-progress-bar int" id="report-int-bar" style="width: 96%;"></div>
+                <div class="dim-progress-bar int" id="report-int-bar" style="width: 100%;"></div>
               </div>
               <div style="font-size: 11px; color: var(--text-muted);" id="report-int-desc">座艙乾淨無乘客遺留物品</div>
             </div>
@@ -238,9 +238,9 @@
                 <svg class="ui-icon" viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
                 更換其他車輛資料夾
               </button>
-              <button class="btn btn-secondary" onclick="window.iguardApp.openDiagnosticModal()">
-                <svg class="ui-icon" viewBox="0 0 24 24"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
-                檢視全車各角度比對與車損標記
+              <button class="btn btn-secondary" id="btn-open-diagnostic" onclick="window.iguardApp.openDiagnosticModal()" style="display: none;">
+                <svg class="ui-icon text-red" viewBox="0 0 24 24"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+                檢視車損標記 (AI 圈選)
               </button>
             </div>
           </div>
@@ -248,52 +248,20 @@
       </div>
   </main>
 
-  <!-- Diagnostic Modal with Angle Switcher -->
+  <!-- AI Damage Annotation Modal (Only Damaged Angles) -->
   <div class="modal-backdrop" id="diagnostic-modal" onclick="window.iguardApp.closeDiagnosticModal()">
-    <div class="modal-content" onclick="event.stopPropagation()">
+    <div class="modal-content" style="max-width: 920px;" onclick="event.stopPropagation()">
       <div class="panel-header">
-        <div class="panel-title" id="modal-title-text">
-          車況影像比對與 AI 車損檢驗診斷
+        <div class="panel-title" id="modal-title-text" style="display: flex; align-items: center; gap: 8px;">
+          <svg class="ui-icon text-red" viewBox="0 0 24 24"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+          【AI 檢測】車損刮痕圈選標記
         </div>
         <button class="btn btn-secondary" style="padding: 4px 10px;" onclick="window.iguardApp.closeDiagnosticModal()">關閉</button>
       </div>
 
-      <!-- Modal Angle Selector Tabs -->
-      <div style="display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;" id="modal-angle-tabs">
-        <button class="preset-btn active" onclick="window.iguardApp.switchModalAngle(1)">#1 左前</button>
-        <button class="preset-btn" onclick="window.iguardApp.switchModalAngle(2)">#2 右前</button>
-        <button class="preset-btn" onclick="window.iguardApp.switchModalAngle(3)">#3 左後</button>
-        <button class="preset-btn" onclick="window.iguardApp.switchModalAngle(4)">#4 右後</button>
-        <button class="preset-btn" onclick="window.iguardApp.switchModalAngle(10)">#10 前座艙</button>
-        <button class="preset-btn" onclick="window.iguardApp.switchModalAngle(11)">#11 後座艙</button>
-      </div>
-
-      <div class="quad-grid">
-        <div class="quad-item">
-          <span class="quad-tag">【還車前】借車時原始照片</span>
-          <img id="modal-img-pre" src="" alt="還車前借車照">
-        </div>
-        <div class="quad-item">
-          <span class="quad-tag text-cyan">【還車後】本次還車拍照</span>
-          <img id="modal-img-post" src="" alt="還車後拍照">
-        </div>
-        <div class="quad-item">
-          <span class="quad-tag text-yellow">【新舊比對】外觀差異比對圖</span>
-          <img id="modal-img-diff" src="" alt="差異比對">
-        </div>
-        <div class="quad-item">
-          <span class="quad-tag text-red">【AI 檢測】車損刮痕圈選標記</span>
-          <img id="modal-img-sam2" src="" alt="車損標記">
-        </div>
-      </div>
-
-      <div class="mt-16" style="background: var(--bg-surface); padding: 16px; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
-        <div style="font-weight: 700; font-size: 14px; color: var(--text-primary); margin-bottom: 8px;">AI 檢驗判定細節：</div>
-        <div id="modal-diag-text" style="font-size: 13px; line-height: 1.8; color: var(--text-secondary);">
-          • <strong>照片角度校正</strong>：比對成功，系統已自動將本次還車照片與借車時對齊<br>
-          • <strong>新舊車況比對</strong>：全車外觀無明顯變化，未發現新增刮痕、凹陷或擦傷<br>
-          • <strong>車身漆面狀態</strong>：完好無損（判定為【零車損】，符合還車標準）
-        </div>
+      <!-- Container dynamically holding all damaged angle cards -->
+      <div id="modal-damages-container" style="display: flex; flex-direction: column; gap: 20px; margin: 16px 0;">
+        <!-- Dynamically rendered per damaged angle -->
       </div>
     </div>
   </div>

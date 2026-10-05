@@ -31,26 +31,63 @@ class IGuardAPI {
     return this.checkHealth();
   }
 
+  async quickFetch(url, timeoutMs = 2800, headers = { "Accept": "application/json" }) {
+    if (!url) return null;
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
+      const res = await fetch(url, {
+        method: "GET",
+        headers: headers,
+        signal: controller.signal
+      });
+      clearTimeout(timer);
+      if (res.ok) {
+        return await res.json();
+      }
+    } catch (e) {}
+    return null;
+  }
+
   async discoverApiFromSupabase() {
     try {
-      if (window.iguardSupabase && window.iguardSupabase.client) {
+      let discoveredUrl = null;
+
+      // 1. Direct REST fetch to Supabase (instant, zero SDK dependency)
+      const restRes = await this.quickFetch(
+        "https://uzpmwyeirkgdweuuptbr.supabase.co/rest/v1/vehicles?vehicle_code=eq.SYSTEM_API_URL&select=plate_number",
+        2500,
+        {
+          "apikey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV6cG13eWVpcmtnZHdldXVwdGJyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA3NTkyODgsImV4cCI6MjEwNjMzNTI4OH0.VQbB3jgYyAslq2bP1YNPYM5BDj2mlGNHvUQ8zf5Cv0g",
+          "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV6cG13eWVpcmtnZHdldXVwdGJyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA3NTkyODgsImV4cCI6MjEwNjMzNTI4OH0.VQbB3jgYyAslq2bP1YNPYM5BDj2mlGNHvUQ8zf5Cv0g",
+          "Accept": "application/json"
+        }
+      );
+
+      if (Array.isArray(restRes) && restRes.length > 0 && restRes[0].plate_number) {
+        discoveredUrl = restRes[0].plate_number.trim().replace(/\/+$/, "");
+      } else if (window.iguardSupabase && window.iguardSupabase.client) {
         const res = await window.iguardSupabase.client
           .table("vehicles")
           .select("plate_number")
           .eq("vehicle_code", "SYSTEM_API_URL")
           .limit(1);
         if (res.data && res.data.length > 0 && res.data[0].plate_number) {
-          const discoveredUrl = res.data[0].plate_number.trim().replace(/\/+$/, "");
-          console.log("[iGuard Discovery] Found 5090 API in Supabase:", discoveredUrl);
-          const healthRes = await fetch(`${discoveredUrl}/health`, { method: "GET" });
-          if (healthRes.ok) {
-            const healthData = await healthRes.json();
-            this.apiBase = discoveredUrl;
-            localStorage.setItem("iguard_api_base", discoveredUrl);
-            this.isBackendOnline = true;
-            console.log("[iGuard Discovery] Auto-connected to 5090:", discoveredUrl);
-            return { online: true, data: healthData };
-          }
+          discoveredUrl = res.data[0].plate_number.trim().replace(/\/+$/, "");
+        }
+      }
+
+      if (discoveredUrl && discoveredUrl.startsWith("http")) {
+        console.log("[iGuard Discovery] Found 5090 API in Supabase:", discoveredUrl);
+        const healthData = await this.quickFetch(`${discoveredUrl}/health`, 3000);
+        if (healthData) {
+          this.apiBase = discoveredUrl;
+          localStorage.setItem("iguard_api_base", discoveredUrl);
+          this.isBackendOnline = true;
+          console.log("[iGuard Discovery] Successfully connected to 5090:", discoveredUrl);
+          return { online: true, data: healthData };
+        } else {
+          console.warn("[iGuard Discovery] 5090 API from Supabase did not respond to /health:", discoveredUrl);
         }
       }
     } catch (err) {
@@ -60,57 +97,51 @@ class IGuardAPI {
   }
 
   async checkHealth() {
-    // 1. 嘗試目前網址
-    try {
-      const res = await fetch(`${this.apiBase}/health`, {
-        method: "GET",
-        headers: { "Accept": "application/json" }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        this.isBackendOnline = true;
-        return { online: true, data };
+    const isRemoteBrowser = typeof window !== "undefined" && window.location && window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1";
+
+    // 1. 若在遠端其他電腦/手機上，優先向 Supabase 查詢 5090 當前活動穿透網址
+    if (isRemoteBrowser) {
+      const discovery = await this.discoverApiFromSupabase();
+      if (discovery && discovery.online) {
+        return discovery;
       }
-    } catch (err) {}
-
-    // 2. 若為本機環境，嘗試 127.0.0.1:8000 直連
-    if (this.apiBase !== "http://127.0.0.1:8000") {
-      try {
-        const localRes = await fetch("http://127.0.0.1:8000/health", {
-          method: "GET",
-          headers: { "Accept": "application/json" }
-        });
-        if (localRes.ok) {
-          const localData = await localRes.json();
-          this.apiBase = "http://127.0.0.1:8000";
-          localStorage.setItem("iguard_api_base", "http://127.0.0.1:8000");
-          this.isBackendOnline = true;
-          return { online: true, data: localData };
-        }
-      } catch (errLocal) {}
     }
 
-    // 3. 從 Supabase 雲端自動尋標（跨電腦/跨裝置零設定直連）
-    const discovery = await this.discoverApiFromSupabase();
-    if (discovery && discovery.online) {
-      return discovery;
+    // 2. 嘗試目前網址 (2.5 秒超時，避免卡死)
+    const curData = await this.quickFetch(`${this.apiBase}/health`, 2500);
+    if (curData) {
+      this.isBackendOnline = true;
+      return { online: true, data: curData };
     }
 
-    // 4. 回退預設網址
+    // 3. 若在本機 5090 環境，嘗試 127.0.0.1:8000 直連 (1.2 秒超時)
+    if (!isRemoteBrowser && this.apiBase !== "http://127.0.0.1:8000") {
+      const localData = await this.quickFetch("http://127.0.0.1:8000/health", 1200);
+      if (localData) {
+        this.apiBase = "http://127.0.0.1:8000";
+        localStorage.setItem("iguard_api_base", "http://127.0.0.1:8000");
+        this.isBackendOnline = true;
+        return { online: true, data: localData };
+      }
+    }
+
+    // 4. 若上述皆未成功，非本機環境下再次嘗試 Supabase 尋標
+    if (!isRemoteBrowser) {
+      const discovery = await this.discoverApiFromSupabase();
+      if (discovery && discovery.online) {
+        return discovery;
+      }
+    }
+
+    // 5. 嘗試預設網址
     if (this.apiBase !== DEFAULT_API_BASE && DEFAULT_API_BASE) {
-      try {
-        const res2 = await fetch(`${DEFAULT_API_BASE}/health`, {
-          method: "GET",
-          headers: { "Accept": "application/json" }
-        });
-        if (res2.ok) {
-          const data2 = await res2.json();
-          this.apiBase = DEFAULT_API_BASE;
-          localStorage.setItem("iguard_api_base", DEFAULT_API_BASE);
-          this.isBackendOnline = true;
-          return { online: true, data: data2 };
-        }
-      } catch (e2) {}
+      const defData = await this.quickFetch(`${DEFAULT_API_BASE}/health`, 2500);
+      if (defData) {
+        this.apiBase = DEFAULT_API_BASE;
+        localStorage.setItem("iguard_api_base", DEFAULT_API_BASE);
+        this.isBackendOnline = true;
+        return { online: true, data: defData };
+      }
     }
 
     this.isBackendOnline = false;
@@ -388,7 +419,7 @@ class IGuardAPI {
     // 2. Interior Score (55% weight)
     let interiorScore = 100;
     if (interiorAngles.length > 0) {
-      const scores = interiorAngles.map(a => Number(a.cleanliness_score || (a.cleanliness_level === "dirty" ? 50 : (a.cleanliness_level === "fair" ? 75 : 98))));
+      const scores = interiorAngles.map(a => Number(a.cleanliness_score ?? (a.cleanliness_level === "dirty" ? 50 : (a.cleanliness_level === "fair" ? 75 : 100))));
       interiorScore = Math.round(scores.reduce((sum, v) => sum + v, 0) / scores.length);
       interiorAngles.forEach(a => {
         const itype = Number(a.image_type);
