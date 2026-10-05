@@ -98,7 +98,7 @@
         <div class="panel-header">
           <div class="panel-title">
             <svg class="ui-icon text-cyan" viewBox="0 0 24 24"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"/><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"/><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"/><path d="M19.1 4.9C23 8.8 23 15.2 19.1 19.1"/></svg>
-            整車檢驗即時動態串流 (Whole-Vehicle Stream)
+            整車檢驗即時動態串流
           </div>
           <div style="display: flex; gap: 8px; align-items: center;">
             <span id="data-source-badge" style="display: none; font-size: 11px; padding: 3px 8px; border-radius: 4px; background: rgba(255, 179, 0, 0.15); color: #ffb300; font-weight: 600;">模擬展示模式</span>
@@ -180,33 +180,7 @@
         <button class="btn btn-secondary" style="padding: 4px 10px;" onclick="window.adminWarRoom.closeModal()">關閉</button>
       </div>
 
-      <div class="quad-grid">
-        <div class="quad-item">
-          <span class="quad-tag">【還車前】借車時原始照片</span>
-          <img id="diag-img-pre" src="" alt="還車前借車照">
-        </div>
-        <div class="quad-item">
-          <span class="quad-tag text-cyan">【還車後】本次還車拍照</span>
-          <img id="diag-img-post" src="" alt="還車後拍照">
-        </div>
-        <div class="quad-item">
-          <span class="quad-tag text-yellow">【新舊比對】外觀差異比對圖</span>
-          <img id="diag-img-diff" src="" alt="差異比對">
-        </div>
-        <div class="quad-item">
-          <span class="quad-tag text-red">【AI 檢測】車損刮痕圈選標記</span>
-          <img id="diag-img-sam2" src="" alt="車損標記">
-        </div>
-      </div>
-
-      <div class="mt-16" style="background: var(--bg-surface); padding: 16px; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
-        <div style="font-weight: 700; font-size: 14px; color: var(--text-primary); margin-bottom: 8px;">整車 AI 檢驗判定細節：</div>
-        <div id="diag-modal-details" style="font-size: 13px; line-height: 1.8; color: var(--text-secondary);">
-          • <strong>照片角度校正</strong>：比對成功，角度與借車時完全吻合<br>
-          • <strong>車身外觀檢查</strong>：全車身漆面完好，未發現新增刮痕或凹痕<br>
-          • <strong>處理建議</strong>：判定為【零車損】，系統已自動放行上架
-        </div>
-      </div>
+      <div id="diag-modal-content"></div>
     </div>
   </div>
 
@@ -684,96 +658,55 @@
       async openInspectionDiag(caseId, vehicleCode, tier) {
         const modal = document.getElementById("admin-diag-modal");
         const title = document.getElementById("diag-modal-title");
-        const details = document.getElementById("diag-modal-details");
-        const imgPre = document.getElementById("diag-img-pre");
-        const imgPost = document.getElementById("diag-img-post");
-        const diffImg = document.getElementById("diag-img-diff");
-        const sam2Img = document.getElementById("diag-img-sam2");
+        const content = document.getElementById("diag-modal-content");
 
-        if (!modal) return;
+        if (!modal || !content) return;
 
-        const record = this.liveInspections.find(i => i.case_id === caseId) || {
+        const caseRecords = this.liveInspections.filter(i => i.case_id === caseId);
+        const record = caseRecords[0] || {
           case_id: caseId,
           vehicle_code: vehicleCode || "RCR-7661",
           risk_level: tier || "green"
         };
 
-        const targetVehicle = record.vehicle_code;
-        const targetTier = record.risk_level;
-        const hasDamage = targetTier === "red";
-        const hasTrash = targetTier === "yellow";
-        const angleType = hasTrash ? 10 : (hasDamage ? (targetVehicle.includes("RCR-7661") ? 3 : 2) : 1);
+        const targetVehicle = record.vehicle_code || "未知車輛";
+        const damageRecords = caseRecords.filter(item =>
+          Boolean(item.damage_detected) ||
+          item.risk_level === "red"
+        );
 
         if (title) {
-          title.textContent = `整車車況比對與 AI 檢驗結果 — ${record.case_id} (${targetVehicle})`;
+          title.textContent = `【AI 檢測】車損刮痕圈選標記 (${damageRecords.length} 個角度) — ${record.case_id} (${targetVehicle})`;
         }
 
-        const preUrl = record.pre_image_url || "";
-        const postUrl = record.post_image_url || record.mask_overlay_url || "";
+        const cardsHtml = damageRecords.map((damageRecord, index) => {
+          const damageRegion = damageRecord.damage_parts || damageRecord.risk_reason || "外觀漆面擦損";
+          const overlayUrl = damageRecord.mask_overlay_url || "";
+          const imageHtml = overlayUrl
+            ? `<img src="${overlayUrl}" alt="${targetVehicle} 視角 ${damageRecord.image_type || index + 1} AI 車損標記" style="max-height: 520px; width: 100%; object-fit: contain; border-radius: var(--radius-sm); border: 1px solid rgba(239, 68, 68, 0.4);">`
+            : `<div style="padding: 80px 16px; color: var(--text-muted);">此角度沒有可顯示的 AI 車損標記圖片</div>`;
 
-        if (imgPre) {
-          imgPre.src = preUrl || (window.iguardAPI ? window.iguardAPI.createAngleSvgDataUrl(angleType, targetVehicle, false, false) : "");
-        }
-        if (imgPost) {
-          imgPost.src = postUrl || (window.iguardAPI ? window.iguardAPI.createAngleSvgDataUrl(angleType, targetVehicle, hasDamage, hasTrash) : "");
-        }
+          return `
+            <div class="damage-view-card" style="background: var(--bg-surface); border: 1px solid var(--border-medium); border-radius: var(--radius-md); overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+              <div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid var(--border-subtle); background: var(--bg-surface-elevated); flex-wrap: wrap; gap: 8px;">
+                <div style="font-weight: 700; font-size: 15px; color: var(--text-primary);">
+                  <span style="color: #ef4444; font-size: 16px;">●</span>
+                  【視角 #${damageRecord.image_type || index + 1}】AI 車損刮痕圈選標記
+                </div>
+                <span class="triage-badge red">本次租車新增車損責任</span>
+              </div>
+              <div style="padding: 16px; background: #070a12; text-align: center;">${imageHtml}</div>
+              <div style="padding: 16px 18px; font-size: 13px; line-height: 1.8; color: var(--text-secondary); background: var(--bg-surface);">
+                • <strong>受損部位</strong>：${damageRegion}<br>
+                • <strong>AI 判定</strong>：已檢出新增車損，保留此角度車損標記供人工複核與派工。
+              </div>
+            </div>
+          `;
+        });
 
-        // Box 3: Diff Canvas
-        if (diffImg && window.iguardDiffRenderer) {
-          diffImg.style.opacity = "0.7";
-          const diffData = await window.iguardDiffRenderer.generateVisualDiff(preUrl, postUrl, {
-            angleType,
-            isDamaged: hasDamage || hasTrash,
-            isPreExisting: false,
-            isInterior: hasTrash,
-            damageRegion: record.damage_parts || (hasDamage ? "保險桿擦痕" : "座艙異物"),
-            vehicleCode: targetVehicle
-          });
-          diffImg.src = diffData;
-          diffImg.style.opacity = "1";
-        }
-
-        // Box 4: SAM 2 Overlay
-        if (sam2Img && window.iguardDiffRenderer) {
-          sam2Img.style.opacity = "0.7";
-          const sam2Data = await window.iguardDiffRenderer.generateSam2Overlay(postUrl, {
-            angleType,
-            isDamaged: hasDamage || hasTrash,
-            isPreExisting: false,
-            isInterior: hasTrash,
-            damageRegion: record.damage_parts || (hasDamage ? "保險桿擦痕" : "座艙異物"),
-            damageSeverity: hasDamage ? "moderate" : "none",
-            vehicleCode: targetVehicle
-          });
-          sam2Img.src = sam2Data;
-          sam2Img.style.opacity = "1";
-        }
-
-        // Details text
-        if (details) {
-          if (targetTier === "red") {
-            details.innerHTML = `
-              • <strong>照片幾何校正</strong>：全車 6 視角比對成功，角度與借車時完全吻合<br>
-              • <strong>外觀評分 (45%)</strong>：65 分。檢測出本次新增中度擦傷（非借車前舊痕，長度約 15cm，底漆受損）<br>
-              • <strong>內裝評分 (55%)</strong>：90 分。座艙狀態良好無污損<br>
-              • <strong>全車總評分</strong>：52 分（低於 70 分門檻）。系統已強制阻斷預約並開立維修派工單（預估工時 1.5 小時）
-            `;
-          } else if (targetTier === "yellow") {
-            details.innerHTML = `
-              • <strong>照片幾何校正</strong>：全車 6 視角比對完成<br>
-              • <strong>外觀評分 (45%)</strong>：92 分。全車身無新增車損<br>
-              • <strong>內裝評分 (55%)</strong>：68 分。中央扶手杯架檢出飲料紙杯遺留，腳踏墊有少許泥沙<br>
-              • <strong>全車總評分</strong>：78 分（介於 70~89 分門檻）。已轉入戰情室待審，通知行動清潔人員進行整理
-            `;
-          } else {
-            details.innerHTML = `
-              • <strong>照片幾何校正</strong>：全車 6 視角比對成功，角度與借車時完全吻合 (LightGlue 420+ 處特徵點吻合)<br>
-              • <strong>外觀評分 (45%)</strong>：100 分。全車身漆面完好無損，未發現新增刮痕或凹痕<br>
-              • <strong>內裝評分 (55%)</strong>：100 分。座艙清潔無異物，無乘客遺留物品<br>
-              • <strong>全車總評分</strong>：100 分（達 90 分以上合格，滿分完美車況）。系統已自動放行上架並結案退款
-            `;
-          }
-        }
+        content.innerHTML = cardsHtml.length > 0
+          ? cardsHtml.join("")
+          : `<div style="padding: 80px 16px; text-align: center; color: var(--text-muted);">此案件沒有可顯示的 AI 車損標記圖片</div>`;
 
         modal.classList.add("open");
       }

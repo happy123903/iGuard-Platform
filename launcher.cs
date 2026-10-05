@@ -42,7 +42,7 @@ namespace IGuardLauncher
                 }
                 else
                 {
-                    baseDir = @"c:\Users\user\Desktop\炫晟\iRent\iGuard";
+                    baseDir = @"c:\Users\user\Desktop\炫晟\iRent\iGuard-Platform";
                 }
             }
 

@@ -3,7 +3,7 @@
  * Communicates with FastAPI backend on localhost:8000, with intelligent fallback simulation.
  */
 
-const DEFAULT_API_BASE = "https://ground-console-everywhere-effectiveness.trycloudflare.com";
+const DEFAULT_API_BASE = "https://grad-ids-cardiac-affecting.trycloudflare.com";
 
 class IGuardAPI {
   constructor() {
@@ -98,6 +98,19 @@ class IGuardAPI {
 
   async checkHealth() {
     const isRemoteBrowser = typeof window !== "undefined" && window.location && window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1";
+    const localApiBase = "http://127.0.0.1:8000";
+
+    // When the frontend itself is served locally, never wait for a stale
+    // Cloudflare URL before checking the local FastAPI process.
+    if (!isRemoteBrowser) {
+      const localData = await this.quickFetch(`${localApiBase}/health`, 1200);
+      if (localData) {
+        this.apiBase = localApiBase;
+        localStorage.setItem("iguard_api_base", localApiBase);
+        this.isBackendOnline = true;
+        return { online: true, data: localData };
+      }
+    }
 
     // 1. 若在遠端其他電腦/手機上，優先向 Supabase 查詢 5090 當前活動穿透網址
     if (isRemoteBrowser) {
@@ -115,11 +128,11 @@ class IGuardAPI {
     }
 
     // 3. 若在本機 5090 環境，嘗試 127.0.0.1:8000 直連 (1.2 秒超時)
-    if (!isRemoteBrowser && this.apiBase !== "http://127.0.0.1:8000") {
-      const localData = await this.quickFetch("http://127.0.0.1:8000/health", 1200);
+    if (!isRemoteBrowser && this.apiBase !== localApiBase) {
+      const localData = await this.quickFetch(`${localApiBase}/health`, 1200);
       if (localData) {
-        this.apiBase = "http://127.0.0.1:8000";
-        localStorage.setItem("iguard_api_base", "http://127.0.0.1:8000");
+        this.apiBase = localApiBase;
+        localStorage.setItem("iguard_api_base", localApiBase);
         this.isBackendOnline = true;
         return { online: true, data: localData };
       }
