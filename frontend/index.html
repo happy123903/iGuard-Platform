@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>iGuard — 智慧車況檢驗與營運分流守護者</title>
+  <meta name="description" content="iGuard: 智慧車況拍照防呆、特徵對齊、像素級車損多邊形標記與車內多模態整潔度推理。">
+  
+  <!-- CSS Stylesheet -->
+  <link rel="stylesheet" href="css/style.css">
+  
+  <!-- Theme Controller (Zero-FOUC instant execution) -->
+  <script src="js/theme.js"></script>
+  
+  <!-- Supabase JS Client SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+  <!-- Top Navigation Header -->
+  <header class="app-header">
+    <div class="brand-container">
+      <div class="brand-title">iGuard</div>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <nav class="nav-links">
+        <a href="index.html" class="nav-tab-btn active">
+          <svg class="ui-icon" viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+          使用者檢驗端
+        </a>
+        <a href="admin.html" class="nav-tab-btn">
+          <svg class="ui-icon" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+          營運調度戰情室
+        </a>
+      </nav>
+
+      <!-- Theme Switcher (Dark / Light Mode) -->
+      <button class="theme-toggle-btn" id="theme-toggle-btn" onclick="window.toggleTheme()" title="目前為白天模式，點擊切換為夜間模式" aria-label="切換至夜間模式">
+        <span class="theme-icon dark-icon">
+          <svg class="ui-icon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </span>
+        <span class="theme-icon light-icon">
+          <svg class="ui-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        </span>
+        <span class="theme-text" id="theme-text">白天模式</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Content Wrapper -->
+  <main class="main-wrapper">
+
+    <!-- Top Vehicle Control & Selection Bar -->
+    <section class="vehicle-control-bar">
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; width: 100%; flex-wrap: wrap;">
+        <!-- Left: Real Folder Picker Button -->
+        <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
+          <input type="file" id="vehicle-folder-input" webkitdirectory directory multiple style="display: none;" onclick="this.value=null" onchange="window.iguardApp.handleFolderSelected(event)">
+          <button class="btn btn-primary" id="btn-browse-folder" onclick="document.getElementById('vehicle-folder-input').click()" style="padding: 10px 22px; font-weight: 700; box-shadow: 0 0 16px rgba(0, 240, 255, 0.35); font-size: 14px;">
+            <svg class="ui-icon" viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+            選取車輛相片資料夾
+          </button>
+          <span style="font-size: 13px; color: var(--text-secondary);">選取包含【取車基準照】與【還車現況照】之車輛資料夾</span>
+        </div>
+
+        <!-- Clear Button -->
+        <div>
+          <button class="btn btn-secondary" style="padding: 8px 18px; font-size: 12px;" onclick="window.iguardApp.clearAllSlots()">
+            清空重選
+          </button>
+        </div>
+      </div>
+
+      <!-- Current Selected Vehicle Status Strip -->
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border-subtle); width: 100%; flex-wrap: wrap;">
+        <div style="display: flex; align-items: center; gap: 10px; font-size: 13px;">
+          <span style="font-weight: 700; color: var(--text-secondary);">目前檢驗車輛：</span>
+          <span class="slot-status-pill empty" id="selected-folder-badge" style="font-size: 13px; padding: 4px 12px;">尚未選取車輛資料夾</span>
+          <span style="font-size: 12px; color: var(--text-muted);" id="selected-folder-meta">點擊上方按鈕選取電腦中的車輛資料夾（自動比對取車 vs 還車以判定本次新增車損）</span>
+        </div>
+        <input type="hidden" id="vehicle-code-input" value="">
+      </div>
+    </section>
+
+    <!-- Whole-Vehicle Inspection Board Card -->
+    <section class="glass-panel" style="margin-bottom: 24px;">
+      <div class="panel-header" style="flex-wrap: wrap; gap: 16px;">
+        <div>
+          <div class="panel-title">
+            <svg class="ui-icon text-cyan" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/></svg>
+            整車 6 大標準視角影像檢驗
+          </div>
+          <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;" id="vehicle-summary-subtitle">
+            系統將依檔名自動載入取車照與還車照，透過幾何對齊與特徵差分，精準判定是否有「本次新增車損」（自動排除借車前既有舊痕）。
+          </div>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+          <span style="font-size: 13px; font-weight: 600; color: var(--text-secondary);" id="slots-count-text">已備妥 0/6 視角</span>
+          <button class="btn btn-primary btn-lg" id="btn-run-inspection" disabled onclick="window.iguardApp.runFullInspection()">
+            <svg class="ui-icon" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            開始全車智能檢驗 (整車單位評分)
+          </button>
+        </div>
+      </div>
+
+      <!-- Missing Angles Warning Banner (Shown when any required angle photo is missing) -->
+      <div id="missing-angles-alert" class="missing-angles-banner" style="display: none;">
+        <svg class="ui-icon text-red" viewBox="0 0 24 24" style="width: 24px; height: 24px; flex-shrink: 0;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <div style="flex: 1;">
+          <div style="font-weight: 700; color: var(--red-alert); font-size: 13px; margin-bottom: 2px;">缺少視角照片警告：</div>
+          <div id="missing-angles-text" style="font-size: 12px; color: var(--text-primary); line-height: 1.5;">未於資料夾中偵測到部分角度照片，請確認檔案！</div>
+        </div>
+      </div>
+
+      <!-- 區塊一：【取車時的影像】（基準存證照） -->
+      <div class="phase-section-card" style="margin-bottom: 20px;">
+        <div class="phase-header">
+          <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+            <span class="phase-badge pre">區塊一</span>
+            <span class="phase-title">取車時的影像（借車基準存證照）</span>
+            <span style="font-size: 12px; color: var(--text-muted);">共 4 大外觀標準視角，作為比對本次是否有新增車損的對照基準</span>
+          </div>
+          <span class="slot-status-pill empty" id="pre-slots-count-badge">待載入取車照 (0/4)</span>
+        </div>
+        <div class="phase-slots-grid pre-grid" id="pre-slots-container">
+          <!-- Populated dynamically via JS: Pre-rental Angles 1, 2, 3, 4 -->
+        </div>
+      </div>
+
+      <!-- 區塊二：【還車時的影像】（本次檢驗照） -->
+      <div class="phase-section-card">
+        <div class="phase-header">
+          <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+            <span class="phase-badge post">區塊二</span>
+            <span class="phase-title">還車時的影像（本次還車檢驗照）</span>
+            <span style="font-size: 12px; color: var(--text-muted);">共 6 大標準視角（4 大外觀 + 2 大車室座艙），進行車損差分與整潔度推理</span>
+          </div>
+          <span class="slot-status-pill empty" id="post-slots-count-badge">待載入還車照 (0/6)</span>
+        </div>
+        <div class="phase-slots-grid post-grid" id="post-slots-container">
+          <!-- Populated dynamically via JS: Post-rental Angles 1, 2, 3, 4, 10, 11 -->
+        </div>
+      </div>
+    </section>
+
+    <!-- Whole-Vehicle Comprehensive Health Report Card -->
+    <div class="glass-panel" id="vehicle-report-panel" style="display: none; margin-bottom: 24px;">
+      <div class="panel-header">
+        <div class="panel-title">
+          <svg class="ui-icon text-cyan" viewBox="0 0 24 24"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+          全車綜合健康度報告 (Whole-Vehicle Assessment)
+        </div>
+        <span class="triage-badge green" id="vehicle-triage-badge">綠色合格 (>=90分)</span>
+      </div>
+
+          <!-- Hero Score Banner -->
+          <div class="vehicle-score-hero">
+            <div class="hero-score-badge">
+              <span class="hero-score-num text-green" id="report-overall-score">96</span>
+              <span class="hero-score-denom">/ 100 分</span>
+            </div>
+            <div style="text-align: right;">
+              <div style="font-size: 15px; font-weight: 700; color: var(--text-primary);" id="report-action-title">次秒級全自動放行上架</div>
+              <div style="font-size: 12px; color: var(--text-muted);" id="report-case-id">案件代碼: CASE-20261003</div>
+            </div>
+          </div>
+
+          <!-- Dimension Breakdown Row (Exterior 45% & Interior 55%) -->
+          <div class="score-breakdown-row">
+            <div class="dim-score-box">
+              <div class="dim-score-header">
+                <span>車身外觀完整度 (比重 45%)</span>
+                <span class="mono text-cyan" id="report-ext-score">100 分</span>
+              </div>
+              <div class="dim-progress-track">
+                <div class="dim-progress-bar ext" id="report-ext-bar" style="width: 100%;"></div>
+              </div>
+              <div style="font-size: 11px; color: var(--text-muted);" id="report-ext-desc">全車外觀無新增刮痕或凹痕</div>
+            </div>
+
+            <div class="dim-score-box">
+              <div class="dim-score-header">
+                <span>車內座艙整潔度 (比重 55%)</span>
+                <span class="mono" style="color: #c084fc;" id="report-int-score">96 分</span>
+              </div>
+              <div class="dim-progress-track">
+                <div class="dim-progress-bar int" id="report-int-bar" style="width: 96%;"></div>
+              </div>
+              <div style="font-size: 11px; color: var(--text-muted);" id="report-int-desc">座艙乾淨無乘客遺留物品</div>
+            </div>
+          </div>
+
+          <!-- Abnormal Remarks Box -->
+          <div class="abnormal-notes-box clean" id="report-abnormal-box">
+            <div style="font-weight: 700; font-size: 13px; margin-bottom: 4px;" id="report-abnormal-title">異常備註說明：</div>
+            <div style="font-size: 13px; color: var(--text-primary);" id="report-abnormal-notes">全車無異常</div>
+          </div>
+
+          <!-- Authoritative Conclusion -->
+          <div class="conclusion-paragraph" id="report-conclusion-text">
+            【全車綜合判定：綠色合格】全車無異常。外觀無新增損傷，車內座艙清潔且無乘客遺留物品。車況優良，系統已自動歸檔結案，押金即時結清並釋出供下位租客預約。
+          </div>
+
+          <!-- Work Order Box (Shown for Yellow/Red) -->
+          <div class="work-order-summary-card" id="report-work-order-box" style="display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <span style="font-weight: 700; font-size: 13px; color: var(--red-alert);">智慧派工單 — 整備作業指南</span>
+              <span class="status-pill mono" id="wo-id-badge">WO-2026-001</span>
+            </div>
+            <p style="font-size: 12px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 8px;" id="wo-guide-text">
+              建議使用 2000 號水砂紙研磨後進行補漆作業。
+            </p>
+            <div style="display: flex; gap: 16px; font-size: 11px; font-family: var(--font-mono); color: var(--text-muted);">
+              <span>預估工時: <strong class="text-primary" id="wo-hours">1.5 小時</strong></span>
+              <span>建議料件: <strong class="text-primary" id="wo-parts">專用色漆</strong></span>
+            </div>
+          </div>
+
+          <!-- Diagnostic Trigger Button & Report Action Bar -->
+          <div class="mt-16" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; padding-top: 14px; border-top: 1px solid var(--border-subtle);">
+            <div style="font-size: 12px; color: var(--text-muted);" id="report-timestamp-text">
+              <!-- Timestamp and execution sequence populated here -->
+            </div>
+            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+              <button class="btn btn-primary" id="btn-rerun-inspection-report" onclick="window.iguardApp.runFullInspection()">
+                <svg class="ui-icon" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                再次開始全車智能檢驗
+              </button>
+              <button class="btn btn-secondary" onclick="document.getElementById('vehicle-folder-input').click()">
+                <svg class="ui-icon" viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                更換其他車輛資料夾
+              </button>
+              <button class="btn btn-secondary" onclick="window.iguardApp.openDiagnosticModal()">
+                <svg class="ui-icon" viewBox="0 0 24 24"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+                檢視全車各角度比對與車損標記
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+  </main>
+
+  <!-- Diagnostic Modal with Angle Switcher -->
+  <div class="modal-backdrop" id="diagnostic-modal" onclick="window.iguardApp.closeDiagnosticModal()">
+    <div class="modal-content" onclick="event.stopPropagation()">
+      <div class="panel-header">
+        <div class="panel-title" id="modal-title-text">
+          車況影像比對與 AI 車損檢驗診斷
+        </div>
+        <button class="btn btn-secondary" style="padding: 4px 10px;" onclick="window.iguardApp.closeDiagnosticModal()">關閉</button>
+      </div>
+
+      <!-- Modal Angle Selector Tabs -->
+      <div style="display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;" id="modal-angle-tabs">
+        <button class="preset-btn active" onclick="window.iguardApp.switchModalAngle(1)">#1 左前</button>
+        <button class="preset-btn" onclick="window.iguardApp.switchModalAngle(2)">#2 右前</button>
+        <button class="preset-btn" onclick="window.iguardApp.switchModalAngle(3)">#3 左後</button>
+        <button class="preset-btn" onclick="window.iguardApp.switchModalAngle(4)">#4 右後</button>
+        <button class="preset-btn" onclick="window.iguardApp.switchModalAngle(10)">#10 前座艙</button>
+        <button class="preset-btn" onclick="window.iguardApp.switchModalAngle(11)">#11 後座艙</button>
+      </div>
+
+      <div class="quad-grid">
+        <div class="quad-item">
+          <span class="quad-tag">【還車前】借車時原始照片</span>
+          <img id="modal-img-pre" src="" alt="還車前借車照">
+        </div>
+        <div class="quad-item">
+          <span class="quad-tag text-cyan">【還車後】本次還車拍照</span>
+          <img id="modal-img-post" src="" alt="還車後拍照">
+        </div>
+        <div class="quad-item">
+          <span class="quad-tag text-yellow">【新舊比對】外觀差異比對圖</span>
+          <img id="modal-img-diff" src="" alt="差異比對">
+        </div>
+        <div class="quad-item">
+          <span class="quad-tag text-red">【AI 檢測】車損刮痕圈選標記</span>
+          <img id="modal-img-sam2" src="" alt="車損標記">
+        </div>
+      </div>
+
+      <div class="mt-16" style="background: var(--bg-surface); padding: 16px; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
+        <div style="font-weight: 700; font-size: 14px; color: var(--text-primary); margin-bottom: 8px;">AI 檢驗判定細節：</div>
+        <div id="modal-diag-text" style="font-size: 13px; line-height: 1.8; color: var(--text-secondary);">
+          • <strong>照片角度校正</strong>：比對成功，系統已自動將本次還車照片與借車時對齊<br>
+          • <strong>新舊車況比對</strong>：全車外觀無明顯變化，未發現新增刮痕、凹陷或擦傷<br>
+          • <strong>車身漆面狀態</strong>：完好無損（判定為【零車損】，符合還車標準）
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Application Scripts -->
+  <script src="js/supabase-client.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

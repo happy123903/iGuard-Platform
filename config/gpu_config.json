@@ -1,0 +1,46 @@
+{
+  "device": "cuda:0",
+  "gpu_name": "NVIDIA GeForce RTX 5090",
+  "vram_total_gb": 32,
+  "precision": "fp16",
+  "models": {
+    "yolov11x_seg": {
+      "path": "models/yolo11x-seg.pt",
+      "precision": "fp16",
+      "imgsz": 1280,
+      "vram_estimate_gb": 2.4,
+      "resident": true
+    },
+    "sam2_large": {
+      "checkpoint": "models/sam2_hiera_large.pt",
+      "config": "sam2_hiera_l.yaml",
+      "precision": "fp16",
+      "vram_estimate_gb": 5.2,
+      "resident": true
+    },
+    "qwen2_5_vl_7b": {
+      "path": "models/Qwen2.5-VL-7B-Instruct",
+      "precision": "bfloat16",
+      "quantization": "awq_4bit",
+      "vram_estimate_gb": 8.5,
+      "resident": true
+    },
+    "zero_dce": {
+      "path": "models/zero_dce.pth",
+      "precision": "fp16",
+      "vram_estimate_gb": 0.3,
+      "resident": true
+    },
+    "easyocr": {
+      "languages": ["en"],
+      "gpu": true,
+      "vram_estimate_gb": 0.8,
+      "resident": true
+    }
+  },
+  "vram_budget": {
+    "models_total_gb": 17.2,
+    "pytorch_cache_gb": 4.5,
+    "headroom_gb": 10.3
+  }
+}

@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>iGuard — 營運調度戰情室大屏 (Operations War Room)</title>
+  <meta name="description" content="iGuard 營運調度戰情室：即時監控 RTX 5090 算力推論、Supabase Realtime 車檢串流、三色動態分流與 AI 智能工單。">
+  
+  <!-- CSS Stylesheet -->
+  <link rel="stylesheet" href="css/style.css">
+  
+  <!-- Theme Controller (Zero-FOUC instant execution) -->
+  <script src="js/theme.js"></script>
+  
+  <!-- Supabase JS Client SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
+  <!-- Chart.js for Telemetry Visualizations -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+  <!-- Top Navigation Header -->
+  <header class="app-header">
+    <div class="brand-container">
+      <div class="brand-title">iGuard</div>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <nav class="nav-links">
+        <a href="index.html" class="nav-tab-btn">
+          <svg class="ui-icon" viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+          使用者檢驗端
+        </a>
+        <a href="admin.html" class="nav-tab-btn active">
+          <svg class="ui-icon" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+          營運調度戰情室
+        </a>
+      </nav>
+
+      <!-- Theme Switcher (Dark / Light Mode) -->
+      <button class="theme-toggle-btn" id="theme-toggle-btn" onclick="window.toggleTheme()" title="目前為白天模式，點擊切換為夜間模式" aria-label="切換至夜間模式">
+        <span class="theme-icon dark-icon">
+          <svg class="ui-icon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </span>
+        <span class="theme-icon light-icon">
+          <svg class="ui-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        </span>
+        <span class="theme-text" id="theme-text">白天模式</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Dashboard Content -->
+  <main class="main-wrapper">
+
+    <!-- Top Telemetry KPI Bar -->
+    <section class="metric-cards-grid">
+      <div class="metric-card green">
+        <span class="metric-label">今日累積檢驗車輛數</span>
+        <span class="metric-val mono text-cyan">1,248 <span style="font-size: 14px; font-weight: normal; color: var(--text-muted);">輛</span></span>
+        <span class="metric-sub text-green">較昨日同期增長 18.5%</span>
+      </div>
+
+      <div class="metric-card green">
+        <span class="metric-label">全自動直通放行率 (綠燈 >=90分)</span>
+        <span class="metric-val mono text-green">94.2%</span>
+        <span class="metric-sub">1,176 輛次秒級自動還車上架</span>
+      </div>
+
+      <div class="metric-card yellow">
+        <span class="metric-label">人工複審中 (黃燈 70~89分)</span>
+        <span class="metric-val mono text-yellow">12 <span style="font-size: 14px; font-weight: normal; color: var(--text-muted);">輛</span></span>
+        <span class="metric-sub">平均複審時間: 1.8 分鐘</span>
+      </div>
+
+      <div class="metric-card red">
+        <span class="metric-label">即時阻斷派工中 (紅燈 <70分)</span>
+        <span class="metric-val mono text-red">8 <span style="font-size: 14px; font-weight: normal; color: var(--text-muted);">輛</span></span>
+        <span class="metric-sub">5 輛車損補漆 / 3 輛內裝深度清潔</span>
+      </div>
+    </section>
+
+    <!-- Two-Column Operational Command Center -->
+    <div style="display: grid; grid-template-columns: 1.65fr 1fr; gap: 24px; align-items: start; margin-bottom: 28px;">
+
+      <!-- Left Big Card: Realtime Whole-Vehicle Live Stream -->
+      <section class="glass-panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <svg class="ui-icon text-cyan" viewBox="0 0 24 24"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"/><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"/><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"/><path d="M19.1 4.9C23 8.8 23 15.2 19.1 19.1"/></svg>
+            整車檢驗即時動態串流 (Whole-Vehicle Stream)
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <button class="btn btn-secondary" style="padding: 4px 10px; font-size: 11px;" onclick="window.adminWarRoom.refreshData()">
+              刷新數據
+            </button>
+          </div>
+        </div>
+
+        <div class="table-container">
+          <table class="custom-table">
+            <thead>
+              <tr>
+                <th>案件代碼</th>
+                <th>車號</th>
+                <th>視角數</th>
+                <th>外觀評分 (45%)</th>
+                <th>內裝評分 (55%)</th>
+                <th>全車總分</th>
+                <th>異常說明備註</th>
+                <th>分流結果</th>
+                <th>診斷</th>
+              </tr>
+            </thead>
+            <tbody id="inspections-table-body">
+              <tr>
+                <td class="mono"><strong>CASE-992145</strong></td>
+                <td><strong class="text-cyan">RCR-7661</strong></td>
+                <td>6/6 全視角</td>
+                <td><span class="mono">100 分</span></td>
+                <td><span class="mono">96 分</span></td>
+                <td><strong class="text-green mono">98 分</strong></td>
+                <td><span class="text-green">全車無異常</span></td>
+                <td><span class="triage-badge green">綠色放行</span></td>
+                <td><button class="btn btn-secondary" style="padding: 3px 8px; font-size: 11px;" onclick="window.adminWarRoom.openInspectionDiag('CASE-992145', 'RCR-7661', 'green')">檢視</button></td>
+              </tr>
+              <tr>
+                <td class="mono"><strong>CASE-992144</strong></td>
+                <td><strong class="text-red">RCX-5100</strong></td>
+                <td>6/6 全視角</td>
+                <td><span class="mono text-red">65 分</span></td>
+                <td><span class="mono">90 分</span></td>
+                <td><strong class="text-red mono">52 分</strong></td>
+                <td><span class="text-red">右前保險桿中度擦傷</span></td>
+                <td><span class="triage-badge red">紅色阻斷</span></td>
+                <td><button class="btn btn-primary" style="padding: 3px 8px; font-size: 11px;" onclick="window.adminWarRoom.openInspectionDiag('CASE-992144', 'RCX-5100', 'red')">車損</button></td>
+              </tr>
+              <tr>
+                <td class="mono"><strong>CASE-992143</strong></td>
+                <td><strong class="text-yellow">BAP-1234</strong></td>
+                <td>6/6 全視角</td>
+                <td><span class="mono">92 分</span></td>
+                <td><span class="mono text-yellow">68 分</span></td>
+                <td><strong class="text-yellow mono">78 分</strong></td>
+                <td><span class="text-yellow">中央杯架遺留飲料杯</span></td>
+                <td><span class="triage-badge yellow">黃色待審</span></td>
+                <td><button class="btn btn-secondary" style="padding: 3px 8px; font-size: 11px;" onclick="window.adminWarRoom.openInspectionDiag('CASE-992143', 'BAP-1234', 'yellow')">檢視</button></td>
+              </tr>
+              <tr>
+                <td class="mono"><strong>CASE-992142</strong></td>
+                <td><strong class="text-cyan">RDF-8822</strong></td>
+                <td>6/6 全視角</td>
+                <td><span class="mono">100 分</span></td>
+                <td><span class="mono">98 分</span></td>
+                <td><strong class="text-green mono">99 分</strong></td>
+                <td><span class="text-green">全車無異常</span></td>
+                <td><span class="triage-badge green">綠色放行</span></td>
+                <td><button class="btn btn-secondary" style="padding: 3px 8px; font-size: 11px;" onclick="window.adminWarRoom.openInspectionDiag('CASE-992142', 'RDF-8822', 'green')">檢視</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Right Column: AI Work Orders & Dispatch Queue -->
+      <section class="glass-panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <svg class="ui-icon text-red" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+            智慧派工單隊列
+          </div>
+        </div>
+
+        <div class="table-container">
+          <table class="custom-table">
+            <thead>
+              <tr>
+                <th>工單號</th>
+                <th>車號</th>
+                <th>類別</th>
+                <th>狀態</th>
+              </tr>
+            </thead>
+            <tbody id="work-orders-table-body">
+              <tr>
+                <td class="mono"><strong>WO-992140</strong></td>
+                <td class="text-red">RCX-5100</td>
+                <td>鈑噴維修</td>
+                <td><span class="triage-badge red">緊急</span></td>
+              </tr>
+              <tr>
+                <td class="mono"><strong>WO-992138</strong></td>
+                <td class="text-yellow">BAP-1234</td>
+                <td>內裝清潔</td>
+                <td><span class="triage-badge yellow">處理中</span></td>
+              </tr>
+              <tr>
+                <td class="mono"><strong>WO-992135</strong></td>
+                <td>RDF-8822</td>
+                <td>微光重拍</td>
+                <td><span class="status-pill">已完工</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Telemetry Chart -->
+        <div class="mt-20">
+          <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 8px;">
+            今日整車分流分佈 (TRI-COLOR DISTRIBUTION)
+          </div>
+          <div style="height: 180px; position: relative;">
+            <canvas id="triageChart"></canvas>
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+  </main>
+
+  <!-- Diagnostic Inspector Modal -->
+  <div class="modal-backdrop" id="admin-diag-modal" onclick="window.adminWarRoom.closeModal()">
+    <div class="modal-content" onclick="event.stopPropagation()">
+      <div class="panel-header">
+        <div class="panel-title">
+          <span id="diag-modal-title">車況影像比對與 AI 車損檢驗診斷</span>
+        </div>
+        <button class="btn btn-secondary" style="padding: 4px 10px;" onclick="window.adminWarRoom.closeModal()">關閉</button>
+      </div>
+
+      <div class="quad-grid">
+        <div class="quad-item">
+          <span class="quad-tag">【還車前】借車時原始照片</span>
+          <img id="diag-img-pre" src="" alt="還車前借車照">
+        </div>
+        <div class="quad-item">
+          <span class="quad-tag text-cyan">【還車後】本次還車拍照</span>
+          <img id="diag-img-post" src="" alt="還車後拍照">
+        </div>
+        <div class="quad-item">
+          <span class="quad-tag text-yellow">【新舊比對】外觀差異比對圖</span>
+          <img id="diag-img-diff" src="" alt="差異比對">
+        </div>
+        <div class="quad-item">
+          <span class="quad-tag text-red">【AI 檢測】車損刮痕圈選標記</span>
+          <img id="diag-img-sam2" src="" alt="車損標記">
+        </div>
+      </div>
+
+      <div class="mt-16" style="background: var(--bg-surface); padding: 16px; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
+        <div style="font-weight: 700; font-size: 14px; color: var(--text-primary); margin-bottom: 8px;">整車 AI 檢驗判定細節：</div>
+        <div id="diag-modal-details" style="font-size: 13px; line-height: 1.8; color: var(--text-secondary);">
+          • <strong>照片角度校正</strong>：比對成功，角度與借車時完全吻合<br>
+          • <strong>車身外觀檢查</strong>：全車身漆面完好，未發現新增刮痕或凹痕<br>
+          • <strong>處理建議</strong>：判定為【零車損】，系統已次秒級全自動放行上架
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- War Room Script -->
+  <script src="js/supabase-client.js"></script>
+  <script src="js/api.js"></script>
+  <script>
+    class AdminWarRoom {
+      constructor() {
+        this.initChart();
+      }
+
+      initChart() {
+        const ctx = document.getElementById("triageChart");
+        if (ctx) {
+          const currentTheme = document.documentElement.getAttribute("data-theme") || "dark";
+          const labelColor = currentTheme === "light" ? "#475569" : "#94a3b8";
+
+          this.triageChart = new Chart(ctx, {
+            type: "doughnut",
+            data: {
+              labels: ["綠色放行 (94.2%)", "黃色待審 (4.2%)", "紅色派工 (1.6%)"],
+              datasets: [{
+                data: [94.2, 4.2, 1.6],
+                backgroundColor: ["#10b981", "#f59e0b", "#ef4444"],
+                borderWidth: 0
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: { position: "right", labels: { color: labelColor, font: { family: "Plus Jakarta Sans" } } }
+              },
+              cutout: "70%"
+            }
+          });
+
+          // Sync chart colors on theme toggle
+          window.addEventListener("themeChanged", (e) => {
+            if (this.triageChart) {
+              const newColor = e.detail.theme === "light" ? "#475569" : "#94a3b8";
+              this.triageChart.options.plugins.legend.labels.color = newColor;
+              this.triageChart.update();
+            }
+          });
+        }
+      }
+
+      refreshData() {
+        if (window.iguardSupabase && window.iguardSupabase.isReady()) {
+          window.iguardSupabase.fetchRecentInspections(20).then(data => {
+            console.log("Fetched live inspections:", data);
+          });
+        }
+      }
+
+      openInspectionDiag(caseId, vehicleCode, tier) {
+        const modal = document.getElementById("admin-diag-modal");
+        const title = document.getElementById("diag-modal-title");
+        const details = document.getElementById("diag-modal-details");
+        const imgPre = document.getElementById("diag-img-pre");
+        const imgPost = document.getElementById("diag-img-post");
+        const imgDiff = document.getElementById("diag-img-diff");
+        const imgSam2 = document.getElementById("diag-img-sam2");
+
+        if (modal) {
+          if (title) title.textContent = `整車車況比對與 AI 檢驗結果 — ${caseId} (${vehicleCode})`;
+          
+          const hasDamage = tier === "red";
+          const hasTrash = tier === "yellow";
+          const angleType = hasTrash ? 10 : (hasDamage ? 2 : 1);
+          
+          if (window.iguardAPI && window.iguardAPI.createAngleSvgDataUrl) {
+            const cleanSvg = window.iguardAPI.createAngleSvgDataUrl(angleType, vehicleCode, false, false);
+            const markedSvg = window.iguardAPI.createAngleSvgDataUrl(angleType, vehicleCode, hasDamage, hasTrash);
+            if (imgPre) imgPre.src = cleanSvg;
+            if (imgPost) imgPost.src = markedSvg;
+            if (imgDiff) imgDiff.src = markedSvg;
+            if (imgSam2) imgSam2.src = markedSvg;
+          }
+
+          if (details) {
+            if (tier === "red") {
+              details.innerHTML = `
+                • <strong>照片角度校正</strong>：全車 6 視角比對成功，角度與借車時對齊<br>
+                • <strong>外觀評分 (45%)</strong>：65 分。右前保險桿處檢測出新增中度擦傷（長約 15cm，底漆受損）<br>
+                • <strong>內裝評分 (55%)</strong>：90 分。座艙狀態良好無污損<br>
+                • <strong>全車總評分</strong>：52 分（低於 70 分門檻）。系統已強制阻斷預約並開立維修派工單（預估工時 1.5 小時）
+              `;
+            } else if (tier === "yellow") {
+              details.innerHTML = `
+                • <strong>照片角度校正</strong>：全車 6 視角比對完成<br>
+                • <strong>外觀評分 (45%)</strong>：92 分。全車身無新增車損<br>
+                • <strong>內裝評分 (55%)</strong>：68 分。中央扶手杯架檢出飲料紙杯遺留，腳踏墊有少許泥沙<br>
+                • <strong>全車總評分</strong>：78 分（介於 70~89 分門檻）。已轉入戰情室待審，通知行動清潔人員進行整理
+              `;
+            } else {
+              details.innerHTML = `
+                • <strong>照片角度校正</strong>：全車 6 視角比對成功，角度與借車時完全吻合<br>
+                • <strong>外觀評分 (45%)</strong>：100 分。全車身漆面完好無損，未發現新增刮痕或凹痕<br>
+                • <strong>內裝評分 (55%)</strong>：96 分。座艙清潔無異物，無乘客遺留物品<br>
+                • <strong>全車總評分</strong>：98 分（達 90 分以上合格）。系統已次秒級全自動放行上架並結案退款
+              `;
+            }
+          }
+          modal.classList.add("open");
+        }
+      }
+
+      closeModal() {
+        const modal = document.getElementById("admin-diag-modal");
+        if (modal) modal.classList.remove("open");
+      }
+    }
+
+    window.adminWarRoom = new AdminWarRoom();
+  </script>
+</body>
+</html>

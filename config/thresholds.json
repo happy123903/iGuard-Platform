@@ -1,0 +1,40 @@
+{
+  "quality": {
+    "blur_threshold": 80.0,
+    "dark_mean_threshold": 35,
+    "dark_ratio_threshold": 0.4,
+    "bright_mean_threshold": 225,
+    "bright_ratio_threshold": 0.35,
+    "zero_dce_trigger_mean": 60
+  },
+  "composition": {
+    "min_car_occupancy": 0.20,
+    "max_car_occupancy": 0.95,
+    "yolo_confidence": 0.15,
+    "yolo_imgsz": 640
+  },
+  "plate_ocr": {
+    "confidence_threshold": 0.15,
+    "match_similarity_threshold": 0.65,
+    "gpu_enabled": true
+  },
+  "damage_detection": {
+    "ssim_diff_threshold": 45,
+    "min_contour_area": 300,
+    "min_damage_pixels": 200,
+    "severity_thresholds": {
+      "minor": 300,
+      "moderate": 2000,
+      "severe": 8000
+    }
+  },
+  "interior": {
+    "max_new_tokens": 512,
+    "temperature": 0.1
+  },
+  "risk": {
+    "green_auto_archive": true,
+    "yellow_require_review": true,
+    "red_block_next_booking": true
+  }
+}

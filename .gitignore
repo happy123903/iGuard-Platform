@@ -1,0 +1,100 @@
+# =============================================================================
+# iGuard — Git 忽略清單 (.gitignore)
+# 確保敏感資訊（API 金鑰）、大型 AI 模型權重、測試暫存圖檔絕不上傳至 GitHub
+# =============================================================================
+
+# 1. 環境變數與機密金鑰（絕不上傳）
+.env
+.env.local
+.env.*.local
+*.key
+*.pem
+*.pfx
+*.cert
+*.crt
+# 保留範本檔
+!.env.example
+
+# 2. 大型 AI 模型權重（檔案過大，不上傳）
+models/*.pt
+models/*.pth
+models/*.bin
+models/*.safetensors
+models/*.onnx
+models/*.engine
+models/Qwen2.5-VL-3B-Instruct/
+models/Qwen2.5-VL-7B-Instruct/
+models/*/
+# 保留模型目錄與說明文檔
+!models/.gitkeep
+!models/README.md
+
+# 3. 測試與上傳暫存
+uploads/
+temp/
+outputs/temp/
+outputs/*.png
+outputs/*.jpg
+outputs/*.jpeg
+outputs/*.jfif
+outputs/*.webp
+outputs/step*/
+outputs/fresh*/
+*.log
+# 保留評測報告
+!outputs/benchmark_report.md
+!outputs/benchmark_results.json
+!outputs/.gitkeep
+
+# 4. 資料集（若置於專案內）
+dataset/
+datasets/
+*dataset*/
+iRent_dataset/
+iRent_dataset_new/
+
+# 5. Python 虛擬環境與快取編譯
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+ipynb_checkpoints/
+*.pyo
+*.pyd
+iRent_env/
+.venv/
+venv/
+ENV/
+
+# 6. Node.js 依賴與日誌
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# 7. 暫存、備份與雜訊檔案
+*.tmp
+*.bak
+*.orig
+*.rej
+*.swp
+*.swo
+*~
+*.log
+*.sqlite3
+
+# 8. 編輯器與作業系統暫存
+.vscode/
+.idea/
+Thumbs.db
+[Dd]esktop.ini
+.DS_Store
+
+# 9. 封存與備份資料夾
+不需要的資料/
