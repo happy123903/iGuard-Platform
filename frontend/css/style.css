@@ -931,6 +931,30 @@ h1, h2, h3, h4, h5, h6 {
   line-height: 1.6;
 }
 
+.work-order-filters {
+  display: flex;
+  gap: 8px;
+  padding: 10px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.work-order-filter {
+  padding: 5px 10px;
+  font-size: 11px;
+}
+
+.work-order-filter.active {
+  color: var(--cyan-primary);
+  border-color: var(--cyan-primary);
+  background: rgba(0, 240, 255, 0.1);
+}
+
+.work-order-action {
+  margin-left: 8px;
+  padding: 4px 8px;
+  font-size: 11px;
+}
+
 .custom-table tr:hover td {
   background: rgba(255, 255, 255, 0.03);
 }

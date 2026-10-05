@@ -110,7 +110,7 @@ class RiskDispatcher:
                 "color": "red",
                 "priority": "urgent",
                 "action": "維修派工",
-                "reason": "；".join(reasons) + "。系統已自動阻斷下一位用戶預約，即刻立案派工進廠維修。",
+                "reason": "；".join(reasons),
                 "block_next_booking": True,
                 "requires_human_review": False,
                 "work_order_category": "repair",
@@ -660,8 +660,7 @@ class RiskDispatcher:
         if color == "red":
             conclusion = (
                 f"【全車綜合判定：🚨 紅色阻斷 (Red Alert) | 全車總評分: {overall_vehicle_score}/100 分】\n"
-                f"異常項目：{abnormal_summary}。{risk['reason']} "
-                f"車輛當前狀態無法安全釋出，系統已強制阻斷下一位預約租賃，並自動開立緊急派工單。"
+                f"異常項目：{abnormal_summary}。{risk['reason']}"
             )
         elif color == "yellow":
             conclusion = (

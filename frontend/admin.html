@@ -140,6 +140,11 @@
         </div>
 
         <div class="table-container">
+          <div class="work-order-filters" role="group" aria-label="工單狀態篩選">
+            <button class="btn btn-secondary work-order-filter active" data-status-filter="all" onclick="window.adminWarRoom.setWorkOrderFilter('all')">全部</button>
+            <button class="btn btn-secondary work-order-filter" data-status-filter="in_progress" onclick="window.adminWarRoom.setWorkOrderFilter('in_progress')">正在處理</button>
+            <button class="btn btn-secondary work-order-filter" data-status-filter="completed" onclick="window.adminWarRoom.setWorkOrderFilter('completed')">已處理</button>
+          </div>
           <table class="custom-table">
             <thead>
               <tr>
@@ -219,6 +224,7 @@
         this.isFirstLoad = true;
         this.liveInspections = [];
         this.liveWorkOrders = [];
+        this.workOrderFilter = "all";
         this.triageChart = null;
         
         this.initChart();
@@ -387,7 +393,9 @@
           const extScore = tier === "green" ? 100 : (item.damage_severity === "severe" ? 35 : (item.damage_severity === "moderate" ? 65 : 82));
           const intScore = item.cleanliness_score || (item.cleanliness_level === "dirty" ? 60 : 96);
           const overallScore = Math.round(extScore * 0.45 + intScore * 0.55);
-          const abnormalNote = item.risk_reason || item.damage_parts || (tier === "green" ? "全車無異常" : "檢出外觀/內裝車況異常");
+          const abnormalNote = (item.risk_reason || item.damage_parts || (tier === "green" ? "全車無異常" : "檢出外觀/內裝車況異常"))
+            .replace(/。?系統已自動阻斷下一位用戶預約，即刻立案派工進廠維修。?/g, "")
+            .replace(/。?車輛當前狀態無法安全釋出，系統已強制阻斷下一位預約租賃，並自動開立緊急派工單。?/g, "");
 
           return `
             <tr data-case-id="${item.case_id}">
@@ -420,22 +428,66 @@
           return;
         }
 
-        tbody.innerHTML = workOrders.map(wo => {
+        const visibleOrders = this.workOrderFilter === "all"
+          ? workOrders
+          : workOrders.filter(wo => wo.status === this.workOrderFilter);
+
+        if (visibleOrders.length === 0) {
+          tbody.innerHTML = `
+            <tr>
+              <td colspan="4" style="text-align: center; color: var(--text-muted); padding: 16px;">
+                此狀態目前沒有工單
+              </td>
+            </tr>
+          `;
+          return;
+        }
+
+        tbody.innerHTML = visibleOrders.map(wo => {
           const isUrgent = wo.priority === "urgent";
           const isDone = wo.status === "completed";
-          const statusBadge = isUrgent
-            ? '<span class="triage-badge red">緊急</span>'
-            : (isDone ? '<span class="status-pill">已完工</span>' : '<span class="triage-badge yellow">處理中</span>');
+          const statusLabel = isDone ? "已處理" : (wo.status === "in_progress" ? "正在處理" : "待處理");
+          const statusClass = isDone ? "status-pill" : (wo.status === "in_progress" ? "triage-badge yellow" : "triage-badge red");
+          const actionButton = isDone
+            ? ""
+            : `<button class="btn btn-secondary work-order-action" onclick="window.adminWarRoom.updateWorkOrderStatus('${wo.work_order_id}', '${wo.status === "in_progress" ? "completed" : "in_progress"}')">${wo.status === "in_progress" ? "標記已處理" : "開始處理"}</button>`;
 
           return `
             <tr>
               <td class="mono"><strong>${wo.work_order_id}</strong></td>
-              <td class="${isUrgent ? 'text-red' : (isDone ? '' : 'text-yellow')}">${wo.vehicle_code}</td>
+              <td class="${isUrgent ? 'text-red' : (isDone ? '' : 'text-yellow')}">${wo.vehicle_code}${isUrgent ? ' <span class="triage-badge red">緊急</span>' : ''}</td>
               <td>${wo.category === 'repair' ? '鈑噴維修' : '內裝清潔'}</td>
-              <td>${statusBadge}</td>
+              <td><span class="${statusClass}">${statusLabel}</span>${actionButton}</td>
             </tr>
           `;
         }).join("");
+      }
+
+      setWorkOrderFilter(filter) {
+        this.workOrderFilter = filter;
+        document.querySelectorAll(".work-order-filter").forEach(button => {
+          button.classList.toggle("active", button.dataset.statusFilter === filter);
+        });
+        this.renderLiveWorkOrdersTable(this.liveWorkOrders);
+      }
+
+      async updateWorkOrderStatus(workOrderId, status) {
+        if (!window.iguardAPI || !window.iguardAPI.isBackendOnline) {
+          this.showToast("後端未連線，無法更新工單狀態", "error");
+          return;
+        }
+        try {
+          const response = await fetch(
+            `${window.iguardAPI.apiBase}/api/v1/work-orders/${encodeURIComponent(workOrderId)}?status=${encodeURIComponent(status)}`,
+            { method: "PATCH" }
+          );
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          this.showToast(status === "completed" ? "工單已標記為已處理" : "工單已切換為正在處理", "success");
+          await this.loadDatabaseData();
+        } catch (error) {
+          console.error("更新工單狀態失敗:", error);
+          this.showToast("更新工單狀態失敗，請稍後再試", "error");
+        }
       }
 
       updateLiveKPIs(inspections) {

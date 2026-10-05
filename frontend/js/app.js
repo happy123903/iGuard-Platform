@@ -1078,7 +1078,7 @@ class IGuardApp {
           <div style="padding: 16px 18px; font-size: 13px; line-height: 1.8; color: var(--text-secondary); background: var(--bg-surface);">
             • <strong>受損部位</strong>：${slot.damageRegion || '外觀漆面擦損'}<br>
             • <strong>AI 像素級分割標記</strong>：Meta SAM 2.1 高精度多邊形分割遮罩，估算長度 ~15cm，底漆受損凹陷 ~2.3mm，推論延遲 38ms<br>
-            • <strong>責任歸屬與處置</strong>：經與取車基準照比對排除借車前舊傷，判定為<strong>【租客本次租車新增車損責任】</strong>，已強制阻斷下一位預約並立案派工。
+            • <strong>責任歸屬與處置</strong>：經與取車基準照比對排除借車前舊傷，判定為<strong>【租客本次租車新增車損責任】</strong>。
           </div>
         </div>
       `);

@@ -3,7 +3,7 @@
  * Communicates with FastAPI backend on localhost:8000, with intelligent fallback simulation.
  */
 
-const DEFAULT_API_BASE = "https://fare-meaning-basics-dig.trycloudflare.com";
+const DEFAULT_API_BASE = "https://qld-compact-zum-laws.trycloudflare.com";
 
 class IGuardAPI {
   constructor() {
@@ -504,7 +504,7 @@ class IGuardAPI {
     } else if (riskLevel === "yellow") {
       conclusion = `【全車綜合判定：黃色待審 (Yellow Review) | 全車總評分: ${overallVehicleScore}/100 分】\n異常項目：${abnormalities.join("；")}。車況基本安全但需進一步核實，系統已標註相關特徵，由營運後台 30 秒內快速確認。`;
     } else {
-      conclusion = `【全車綜合判定：紅色阻斷 (Red Alert) | 全車總評分: ${overallVehicleScore}/100 分】\n異常項目：${abnormalities.join("；")}。檢出本次租車產生之新增車損，車輛無法安全釋出，系統已強制阻斷下一位預約租賃，並自動開立緊急維修派工單。`;
+      conclusion = `【全車綜合判定：紅色阻斷 (Red Alert) | 全車總評分: ${overallVehicleScore}/100 分】\n異常項目：${abnormalities.join("；")}。檢出本次租車產生之新增車損。`;
     }
 
     let workOrder = null;
