@@ -3,7 +3,7 @@
  * Communicates with FastAPI backend on localhost:8000, with intelligent fallback simulation.
  */
 
-const DEFAULT_API_BASE = "https://tribunal-interactive-army-lodging.trycloudflare.com";
+const DEFAULT_API_BASE = "https://fool-scope-hang-bottles.trycloudflare.com";
 
 class IGuardAPI {
   constructor() {
