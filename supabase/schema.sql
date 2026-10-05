@@ -174,15 +174,6 @@ ALTER TABLE work_orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE vehicles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE capture_scores ENABLE ROW LEVEL SECURITY;
 
--- 允許匿名讀取（Demo 用途，正式環境需收緊）
-CREATE POLICY "Allow public read inspections" ON inspections FOR SELECT USING (true);
-CREATE POLICY "Allow public read work_orders" ON work_orders FOR SELECT USING (true);
-CREATE POLICY "Allow public read vehicles" ON vehicles FOR SELECT USING (true);
-
--- 允許 service_role 完整存取（FastAPI 後端使用 service_role_key）
-CREATE POLICY "Allow service insert inspections" ON inspections FOR INSERT WITH CHECK (true);
-CREATE POLICY "Allow service update inspections" ON inspections FOR UPDATE USING (true);
-CREATE POLICY "Allow service insert work_orders" ON work_orders FOR INSERT WITH CHECK (true);
-CREATE POLICY "Allow service update work_orders" ON work_orders FOR UPDATE USING (true);
-CREATE POLICY "Allow service all vehicles" ON vehicles FOR ALL USING (true);
-CREATE POLICY "Allow service all capture_scores" ON capture_scores FOR ALL USING (true);
+-- 不建立公開或一般 authenticated 使用者政策。
+-- FastAPI 後端使用 service_role_key，會在受控環境中繞過 RLS；
+-- 前端不得直接讀寫這些營運資料表。

@@ -32,8 +32,7 @@ namespace IGuardLauncher
 ===============================================================================
 ");
             Console.ResetColor();
-
-            // 1. 定位專案根目錄
+                        // 透過本地 FastAPI，由後端使用 service_role_key 寫入 Supabase。
             string baseDir = AppDomain.CurrentDomain.BaseDirectory.TrimEnd('\\');
             if (!File.Exists(Path.Combine(baseDir, "app", "main.py")))
             {
@@ -177,32 +176,7 @@ namespace IGuardLauncher
                         Console.WriteLine("     https://happy123903.github.io/iGuard-Platform/");
                         Console.WriteLine("===============================================================================");
                         Console.ResetColor();
-
-                        // 1. 直接以 REST API 將 Tunnel 網址寫入 Supabase (最快、最穩、跨網零延遲)
-                        try
-                        {
-                            System.Net.ServicePointManager.SecurityProtocol = (System.Net.SecurityProtocolType)3072 | System.Net.SecurityProtocolType.Tls;
-                            using (var wc = new System.Net.WebClient())
-                            {
-                                wc.Encoding = Encoding.UTF8;
-                                string sbUrl = "https://uzpmwyeirkgdweuuptbr.supabase.co/rest/v1/vehicles?vehicle_code=eq.SYSTEM_API_URL";
-                                string anonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV6cG13eWVpcmtnZHdldXVwdGJyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA3NTkyODgsImV4cCI6MjEwNjMzNTI4OH0.VQbB3jgYyAslq2bP1YNPYM5BDj2mlGNHvUQ8zf5Cv0g";
-                                wc.Headers["apikey"] = anonKey;
-                                wc.Headers["Authorization"] = "Bearer " + anonKey;
-                                wc.Headers["Content-Type"] = "application/json";
-                                wc.Headers["Prefer"] = "return=representation";
-                                string payload = "{\"plate_number\":\"" + tunnelUrl + "\"}";
-                                wc.UploadString(sbUrl, "PATCH", payload);
-                                Console.ForegroundColor = ConsoleColor.Cyan;
-                                Console.WriteLine("  ☁️ [Supabase 雲端] 已成功將 5090 網址同步至雲端資料庫！");
-                                Console.WriteLine("     全球其他電腦開啟 GitHub Pages 即會自動解析並連接！");
-                                Console.ResetColor();
-                            }
-                        }
-                        catch (Exception sbEx)
-                        {
-                            Console.WriteLine("  [提示] Supabase 雲端直接同步略過: " + sbEx.Message);
-                        }
+                        // 透過本地 FastAPI，由後端使用 service_role_key 寫入 Supabase。
 
                         // 2. 向本地 FastAPI 請求向 Supabase 廣播當前 Tunnel 網址 (雙重保障)
                         try

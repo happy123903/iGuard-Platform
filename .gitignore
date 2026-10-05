@@ -42,10 +42,13 @@ outputs/*.webp
 outputs/step*/
 outputs/fresh*/
 *.log
-# 保留評測報告
-!outputs/benchmark_report.md
-!outputs/benchmark_results.json
+# 評測報告可能包含訂單、車牌或其他營運資料，不提交到公開版本庫
+outputs/benchmark_report.md
+outputs/benchmark_results.json
 !outputs/.gitkeep
+
+# 編譯後的執行檔應透過 Release artifact 發布
+*.exe
 
 # 4. 資料集（若置於專案內）
 dataset/
@@ -99,3 +102,4 @@ Thumbs.db
 
 # 9. 封存與備份資料夾
 不需要的資料/
+非專案檔案/
