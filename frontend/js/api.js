@@ -3,7 +3,7 @@
  * Communicates with FastAPI backend on localhost:8000, with intelligent fallback simulation.
  */
 
-const DEFAULT_API_BASE = "https://turner-attribute-dvd-kathy.trycloudflare.com";
+const DEFAULT_API_BASE = "https://burn-agreed-ads-colors.trycloudflare.com";
 
 class IGuardAPI {
   constructor() {
@@ -31,7 +31,36 @@ class IGuardAPI {
     return this.checkHealth();
   }
 
+  async discoverApiFromSupabase() {
+    try {
+      if (window.iguardSupabase && window.iguardSupabase.client) {
+        const res = await window.iguardSupabase.client
+          .table("vehicles")
+          .select("plate_number")
+          .eq("vehicle_code", "SYSTEM_API_URL")
+          .limit(1);
+        if (res.data && res.data.length > 0 && res.data[0].plate_number) {
+          const discoveredUrl = res.data[0].plate_number.trim().replace(/\/+$/, "");
+          console.log("[iGuard Discovery] Found 5090 API in Supabase:", discoveredUrl);
+          const healthRes = await fetch(`${discoveredUrl}/health`, { method: "GET" });
+          if (healthRes.ok) {
+            const healthData = await healthRes.json();
+            this.apiBase = discoveredUrl;
+            localStorage.setItem("iguard_api_base", discoveredUrl);
+            this.isBackendOnline = true;
+            console.log("[iGuard Discovery] Auto-connected to 5090:", discoveredUrl);
+            return { online: true, data: healthData };
+          }
+        }
+      }
+    } catch (err) {
+      console.warn("[iGuard Discovery] Supabase lookup error:", err);
+    }
+    return null;
+  }
+
   async checkHealth() {
+    // 1. 嘗試目前網址
     try {
       const res = await fetch(`${this.apiBase}/health`, {
         method: "GET",
@@ -42,23 +71,31 @@ class IGuardAPI {
         this.isBackendOnline = true;
         return { online: true, data };
       }
-    } catch (err) {
-      if (this.apiBase !== DEFAULT_API_BASE && DEFAULT_API_BASE) {
-        try {
-          const res2 = await fetch(`${DEFAULT_API_BASE}/health`, {
-            method: "GET",
-            headers: { "Accept": "application/json" }
-          });
-          if (res2.ok) {
-            const data2 = await res2.json();
-            this.apiBase = DEFAULT_API_BASE;
-            localStorage.setItem("iguard_api_base", DEFAULT_API_BASE);
-            this.isBackendOnline = true;
-            return { online: true, data: data2 };
-          }
-        } catch (e2) {}
-      }
+    } catch (err) {}
+
+    // 2. 從 Supabase 雲端自動尋標（跨電腦/跨裝置零設定直連）
+    const discovery = await this.discoverApiFromSupabase();
+    if (discovery && discovery.online) {
+      return discovery;
     }
+
+    // 3. 回退預設網址
+    if (this.apiBase !== DEFAULT_API_BASE && DEFAULT_API_BASE) {
+      try {
+        const res2 = await fetch(`${DEFAULT_API_BASE}/health`, {
+          method: "GET",
+          headers: { "Accept": "application/json" }
+        });
+        if (res2.ok) {
+          const data2 = await res2.json();
+          this.apiBase = DEFAULT_API_BASE;
+          localStorage.setItem("iguard_api_base", DEFAULT_API_BASE);
+          this.isBackendOnline = true;
+          return { online: true, data: data2 };
+        }
+      } catch (e2) {}
+    }
+
     this.isBackendOnline = false;
     return {
       online: false,

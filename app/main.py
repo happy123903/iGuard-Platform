@@ -194,6 +194,29 @@ def get_public_config():
     }
 
 
+@app.post("/api/v1/system/register-tunnel", tags=["System"])
+async def register_tunnel(url: str = Query(..., description="Cloudflare Tunnel 穿透公開網址")):
+    """
+    動態向 Supabase 廣播當前活動的 5090 Tunnel 網址，使全球任何前端免設定自動發現。
+    """
+    clean_url = url.strip().rstrip("/")
+    if is_supabase_configured():
+        try:
+            client = get_supabase_client()
+            client.table("vehicles").upsert({
+                "vehicle_code": "SYSTEM_API_URL",
+                "plate_number": clean_url,
+                "model": "Active 5090 Tunnel",
+                "status": "available"
+            }, on_conflict="vehicle_code").execute()
+            logger.info(f"🟢 [Service Discovery] 成功向 Supabase 廣播 5090 API 網址: {clean_url}")
+            return {"status": "registered", "url": clean_url}
+        except Exception as e:
+            logger.warning(f"🔴 [Service Discovery] 廣播至 Supabase 失敗: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
+    return {"status": "skipped", "message": "Supabase 未設定"}
+
+
 @app.get("/api/v1/dataset/vehicle-folders", tags=["Dataset"])
 def get_dataset_vehicle_folders():
     """
