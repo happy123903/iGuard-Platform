@@ -1,13 +1,26 @@
-﻿/**
+/**
  * iGuard — Backend API Client Module
  * Communicates with FastAPI backend on localhost:8000, with intelligent fallback simulation.
  */
 
-const DEFAULT_API_BASE = "https://capitol-positions-seller-deviant.trycloudflare.com";
+const DEFAULT_API_BASE = "https://turner-attribute-dvd-kathy.trycloudflare.com";
 
 class IGuardAPI {
   constructor() {
-    this.apiBase = localStorage.getItem("iguard_api_base") || DEFAULT_API_BASE;
+    let queryApi = null;
+    try {
+      if (typeof window !== "undefined" && window.location && window.location.search) {
+        const urlParams = new URLSearchParams(window.location.search);
+        queryApi = urlParams.get("api");
+      }
+    } catch (e) {}
+
+    if (queryApi) {
+      this.apiBase = queryApi.trim().replace(/\/+$/, "");
+      localStorage.setItem("iguard_api_base", this.apiBase);
+    } else {
+      this.apiBase = localStorage.getItem("iguard_api_base") || DEFAULT_API_BASE;
+    }
     this.isBackendOnline = false;
     this.checkHealth();
   }
@@ -30,7 +43,21 @@ class IGuardAPI {
         return { online: true, data };
       }
     } catch (err) {
-      // Backend offline
+      if (this.apiBase !== DEFAULT_API_BASE && DEFAULT_API_BASE) {
+        try {
+          const res2 = await fetch(`${DEFAULT_API_BASE}/health`, {
+            method: "GET",
+            headers: { "Accept": "application/json" }
+          });
+          if (res2.ok) {
+            const data2 = await res2.json();
+            this.apiBase = DEFAULT_API_BASE;
+            localStorage.setItem("iguard_api_base", DEFAULT_API_BASE);
+            this.isBackendOnline = true;
+            return { online: true, data: data2 };
+          }
+        } catch (e2) {}
+      }
     }
     this.isBackendOnline = false;
     return {
@@ -237,6 +264,9 @@ class IGuardAPI {
   }
 
   async evaluateVehicle(payload) {
+    if (!this.isBackendOnline) {
+      await this.checkHealth();
+    }
     if (this.isBackendOnline) {
       try {
         const res = await fetch(`${this.apiBase}/api/v1/vehicle/evaluate`, {

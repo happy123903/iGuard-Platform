@@ -118,15 +118,17 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# 設定 CORS
-allowed_origins_env = os.getenv("CORS_ORIGINS", "*")
-origins = [o.strip() for o in allowed_origins_env.split(",") if o.strip()]
-if "*" in origins or not origins:
-    origins = ["*"]
-
+# 設定 CORS (完全支援 GitHub Pages 與本地端存取)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=[
+        "https://happy123903.github.io",
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:8000",
+        "http://127.0.0.1:8000"
+    ],
+    allow_origin_regex=r"https?://.*",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -706,6 +708,28 @@ async def evaluate_vehicle(req: VehicleEvaluateRequest):
             temp_path = save_temp_image(card_bgr, f"vehicle_card_{eval_res['case_id']}")
             storage_path = f"dispatch/{req.order_number}/{eval_res['case_id']}_vehicle_card.jpg"
             card_url = await upload_image(temp_path, storage_path)
+
+            # 寫入 inspections 表，觸發 Supabase Realtime 與營運戰情室更新
+            damage_sev = "severe" if eval_res["risk_level"] == "red" else ("minor" if eval_res["damaged_angles"] else "none")
+            int_score = eval_res.get("score_breakdown", {}).get("interior_score", 95)
+            await insert_inspection({
+                "case_id": eval_res["case_id"],
+                "order_number": req.order_number,
+                "vehicle_code": req.vehicle_code,
+                "image_type": 1,
+                "quality_passed": True,
+                "damage_detected": bool(eval_res["damaged_angles"]),
+                "damage_severity": damage_sev,
+                "damage_count": len(eval_res["damaged_angles"]),
+                "damage_parts": str(eval_res["damaged_angles"]) if eval_res["damaged_angles"] else None,
+                "cleanliness_level": "dirty" if eval_res["dirty_angles"] else "clean",
+                "cleanliness_score": int_score,
+                "risk_level": eval_res["risk_level"],
+                "risk_reason": eval_res["reason"],
+                "risk_action": eval_res["action"],
+                "gpu_latency_ms": latency_ms,
+                "mask_overlay_url": card_url
+            })
 
             wo_data = eval_res["work_order"]
             if wo_data:

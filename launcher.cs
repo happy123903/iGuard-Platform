@@ -168,14 +168,26 @@ namespace IGuardLauncher
                     {
                         urlCaptured = true;
                         string tunnelUrl = m.Value;
+                        string webUrl = "https://happy123903.github.io/iGuard-Platform/?api=" + tunnelUrl;
 
                         Console.WriteLine("\n");
                         Console.ForegroundColor = ConsoleColor.Green;
                         Console.WriteLine("===============================================================================");
                         Console.WriteLine("  🚀【Cloudflare 公網穿透通道已成功建立！】");
-                        Console.WriteLine("  👉 您的專屬 API 公網網址: " + tunnelUrl);
+                        Console.WriteLine("  👉 您的 API 公網網址: " + tunnelUrl);
+                        Console.WriteLine("  👉 您的 GitHub Pages 專屬直連網址: ");
+                        Console.WriteLine("     " + webUrl);
                         Console.WriteLine("===============================================================================");
                         Console.ResetColor();
+
+                        try
+                        {
+                            Process.Start(webUrl);
+                            Console.ForegroundColor = ConsoleColor.Cyan;
+                            Console.WriteLine("  🌐 [自動啟動] 已自動為您在瀏覽器開啟前端頁面 (自帶 5090 連線金鑰)！");
+                            Console.ResetColor();
+                        }
+                        catch {}
 
                         // 自動更新 frontend/js/api.js 中的 DEFAULT_API_BASE
                         try
