@@ -67,6 +67,7 @@ class IGuardApp {
     this.renderSlotsGrid();
     this.initRealtimeSubscriptions();
     this.updateTelemetryHUD();
+    this.checkApiStatus();
   }
 
   bindEvents() {
@@ -1062,6 +1063,81 @@ class IGuardApp {
       statusDot.className = "status-dot active";
       statusText.textContent = "RTX 5090 (31.8 GB)";
     }
+  }
+
+  async checkApiStatus() {
+    const dot = document.getElementById("api-status-dot");
+    const text = document.getElementById("api-status-text");
+    if (!dot || !text) return;
+
+    try {
+      const res = await window.iguardAPI.checkHealth();
+      if (res.online) {
+        dot.style.background = "#00e676";
+        dot.style.boxShadow = "0 0 8px #00e676";
+        text.textContent = "5090 在線";
+        text.style.color = "var(--text-primary)";
+      } else {
+        dot.style.background = "#ffb300";
+        dot.style.boxShadow = "none";
+        text.textContent = "模擬展示模式";
+        text.style.color = "var(--text-secondary)";
+      }
+    } catch {
+      dot.style.background = "#ffb300";
+      dot.style.boxShadow = "none";
+      text.textContent = "模擬展示模式";
+    }
+  }
+
+  openApiModal() {
+    const modal = document.getElementById("api-config-modal");
+    const input = document.getElementById("api-url-input");
+    const statusBox = document.getElementById("api-test-status");
+    if (modal && input) {
+      input.value = window.iguardAPI.apiBase;
+      if (statusBox) statusBox.style.display = "none";
+      modal.classList.add("open");
+    }
+  }
+
+  closeApiModal() {
+    const modal = document.getElementById("api-config-modal");
+    if (modal) modal.classList.remove("open");
+  }
+
+  async saveAndTestApi() {
+    const input = document.getElementById("api-url-input");
+    const statusBox = document.getElementById("api-test-status");
+    if (!input || !statusBox) return;
+
+    const url = input.value.trim();
+    if (!url) return;
+
+    statusBox.style.display = "block";
+    statusBox.style.background = "rgba(0, 240, 255, 0.1)";
+    statusBox.style.color = "var(--text-primary)";
+    statusBox.textContent = "正在測試連線至 " + url + " ...";
+
+    const res = await window.iguardAPI.setApiBase(url);
+    if (res.online) {
+      statusBox.style.background = "rgba(0, 230, 118, 0.15)";
+      statusBox.style.color = "#00e676";
+      const dev = res.data && res.data.gpu ? res.data.gpu.device_name : "RTX 5090";
+      statusBox.innerHTML = `✅ 連線成功！硬體：<strong>${dev}</strong><br>已成功綁定此瀏覽器！`;
+      this.checkApiStatus();
+      setTimeout(() => this.closeApiModal(), 1200);
+    } else {
+      statusBox.style.background = "rgba(239, 68, 68, 0.15)";
+      statusBox.style.color = "#ef4444";
+      statusBox.innerHTML = `❌ 無法連線至該網址，請確認本機 <code>啟動iGuard.exe</code> 正在運行中！`;
+      this.checkApiStatus();
+    }
+  }
+
+  resetApiBase() {
+    localStorage.removeItem("iguard_api_base");
+    window.location.reload();
   }
 
   showToast(message, type = "info") {

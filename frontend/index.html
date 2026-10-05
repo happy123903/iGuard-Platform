@@ -45,6 +45,12 @@
         </span>
         <span class="theme-text" id="theme-text">白天模式</span>
       </button>
+
+      <!-- AI Backend API Status & Config Modal Trigger -->
+      <button class="theme-toggle-btn" id="api-status-btn" onclick="window.iguardApp.openApiModal()" title="點擊設定或查看 AI 後端連線網址" style="cursor: pointer; gap: 8px;">
+        <span id="api-status-dot" style="width: 8px; height: 8px; border-radius: 50%; background: #ffb300; display: inline-block;"></span>
+        <span id="api-status-text" style="font-size: 12px; font-weight: 600;">檢測中...</span>
+      </button>
     </div>
   </header>
 
@@ -288,6 +294,33 @@
           • <strong>新舊車況比對</strong>：全車外觀無明顯變化，未發現新增刮痕、凹陷或擦傷<br>
           • <strong>車身漆面狀態</strong>：完好無損（判定為【零車損】，符合還車標準）
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- API Server Config Modal -->
+  <div class="modal-backdrop" id="api-config-modal" onclick="window.iguardApp.closeApiModal()">
+    <div class="modal-content" style="max-width: 520px;" onclick="event.stopPropagation()">
+      <div class="panel-header">
+        <div class="panel-title" style="display: flex; align-items: center; gap: 8px;">
+          <svg class="ui-icon text-cyan" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          AI 推論節點連線設定 (RTX 5090)
+        </div>
+        <button class="btn btn-secondary" style="padding: 4px 10px;" onclick="window.iguardApp.closeApiModal()">關閉</button>
+      </div>
+      <div style="margin: 16px 0;">
+        <label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 8px; color: var(--text-primary);">
+          Cloudflare Tunnel 穿透網址 / 本機 API 網址：
+        </label>
+        <input type="text" id="api-url-input" class="search-input" style="width: 100%; box-sizing: border-box; padding: 10px 14px; font-family: var(--font-mono); font-size: 13px;" placeholder="https://xxxx.trycloudflare.com">
+        <div style="font-size: 12px; color: var(--text-muted); margin-top: 8px; line-height: 1.5;">
+          💡 請填入本地 <code>啟動iGuard.exe</code> 終端機顯示的 <code>https://....trycloudflare.com</code> 網址。設定後將儲存在瀏覽器中，不需重新發布 GitHub Pages！
+        </div>
+      </div>
+      <div id="api-test-status" style="font-size: 13px; margin-bottom: 16px; padding: 12px; border-radius: var(--radius-sm); display: none;"></div>
+      <div style="display: flex; justify-content: flex-end; gap: 10px;">
+        <button class="btn btn-secondary" onclick="window.iguardApp.resetApiBase()">還原預設網址</button>
+        <button class="btn btn-primary" onclick="window.iguardApp.saveAndTestApi()">測試並儲存連線</button>
       </div>
     </div>
   </div>
