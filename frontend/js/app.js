@@ -673,11 +673,7 @@ class IGuardApp {
     if (this.isInspecting) return;
     this.closeDiagnosticModal();
     this.clearAllSlots();
-    this.showToast("已清除上一筆檢驗，請選取新的車輛資料夾", "info");
-    const folderInput = document.getElementById("vehicle-folder-input");
-    if (folderInput) {
-      setTimeout(() => folderInput.click(), 150);
-    }
+    this.showToast("已清除上一筆檢驗資料，請從上方選取新的車輛資料夾", "info");
   }
 
   // ==========================================
@@ -865,6 +861,15 @@ class IGuardApp {
   // ==========================================
   // Render Whole-Vehicle Report Card
   // ==========================================
+  formatReportLines(value, fallback) {
+    const text = Array.isArray(value) ? value.join("\n") : String(value || fallback || "");
+    return text
+      .split(/\s*[；;]\s*|\r?\n/)
+      .map(line => line.trim())
+      .filter(Boolean)
+      .join("\n");
+  }
+
   renderVehicleReport(evalRes) {
     const panel = document.getElementById("vehicle-report-panel");
     if (!panel) return;
@@ -935,7 +940,10 @@ class IGuardApp {
       }
     }
 
-    if (intScoreElem) intScoreElem.textContent = `${intScore} 分`;
+    if (intScoreElem) {
+      intScoreElem.textContent = intScore >= 90 ? "乾淨" : "髒污";
+      intScoreElem.className = `mono interior-cleanliness-status ${intScore >= 90 ? "clean" : "dirty"}`;
+    }
     if (intBar) intBar.style.width = `${intScore}%`;
     if (intDesc) {
       if (intScore >= 90) {
@@ -956,15 +964,19 @@ class IGuardApp {
       abnBox.className = `abnormal-notes-box ${tier === "green" ? "clean" : (tier === "yellow" ? "" : "alert")}`;
     }
     if (abnNotes) {
-      abnNotes.textContent =
-        evalRes.abnormal_notes || (hasAbn ? evalRes.abnormalities.join("；") : "全車無異常（取車 vs 還車前後比對無新增車損）");
+      abnNotes.textContent = this.formatReportLines(
+        evalRes.abnormal_notes || (hasAbn ? evalRes.abnormalities : null),
+        "全車無異常（取車 vs 還車前後比對無新增車損）"
+      );
     }
 
     // Authoritative Conclusion Paragraph
     const conclusionElem = document.getElementById("report-conclusion-text");
     if (conclusionElem) {
-      conclusionElem.textContent =
-        evalRes.conclusion || "【全車綜合判定】全車無異常，符合放行上架標準。";
+      conclusionElem.textContent = this.formatReportLines(
+        evalRes.conclusion,
+        "【全車綜合判定】全車無異常，符合放行上架標準。"
+      );
     }
 
     // Work Order Card

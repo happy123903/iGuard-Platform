@@ -1867,6 +1867,15 @@ h1, h2, h3, h4, h5, h6 {
   overflow-wrap: anywhere;
 }
 
+.interior-cleanliness-status {
+  color: #c084fc;
+  font-weight: 800;
+}
+
+.interior-cleanliness-status.dirty {
+  color: var(--red-alert);
+}
+
 .abnormal-notes-box.clean {
   background: rgba(16, 185, 129, 0.08);
   border-color: rgba(16, 185, 129, 0.25);

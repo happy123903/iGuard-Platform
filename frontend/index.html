@@ -188,12 +188,8 @@
             <div class="dim-score-box">
               <div class="dim-score-header">
                 <span>車內座艙整潔度</span>
-                <span class="mono" style="color: #c084fc;" id="report-int-score">100 分</span>
+                <span class="mono interior-cleanliness-status" id="report-int-score">乾淨</span>
               </div>
-              <div class="dim-progress-track">
-                <div class="dim-progress-bar int" id="report-int-bar" style="width: 100%;"></div>
-              </div>
-              <div style="font-size: 11px; color: var(--text-muted);" id="report-int-desc">座艙乾淨無乘客遺留物品</div>
             </div>
           </div>
 
@@ -229,10 +225,6 @@
               <button class="btn btn-primary" id="btn-rerun-inspection-report" onclick="window.iguardApp.startNewInspection()">
                 <svg class="ui-icon" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
                 再次開始全車智能檢驗
-              </button>
-              <button class="btn btn-secondary" onclick="document.getElementById('vehicle-folder-input').click()">
-                <svg class="ui-icon" viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
-                更換其他車輛資料夾
               </button>
               <button class="btn btn-secondary" id="btn-open-diagnostic" onclick="window.iguardApp.openDiagnosticModal()" style="display: none;">
                 <svg class="ui-icon text-red" viewBox="0 0 24 24"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
