@@ -126,7 +126,7 @@ class QwenInteriorEngine:
             f"請務必輸出嚴格合法的 JSON，格式如下（不得附加任何多餘文字）：\n"
             f"{{\n"
             f'  "cleanliness_level": "clean",\n'
-            f'  "score": 95,\n'
+            f'  "score": 100,\n'
             f'  "detected_items": [],\n'
             f'  "reasoning": "車內整潔乾淨，座椅與腳踏墊無明顯垃圾或遺留物。",\n'
             f'  "cleaning_action_required": false,\n'
@@ -183,7 +183,7 @@ class QwenInteriorEngine:
 
             # 規範輸出結構體
             clean_level = parsed_json.get("cleanliness_level", "clean")
-            score = int(parsed_json.get("score", 95))
+            score = int(parsed_json.get("score", 100))
             detected_items = parsed_json.get("detected_items", [])
             reasoning = parsed_json.get("reasoning", "車況正常良好。")
             cleaning_req = bool(parsed_json.get("cleaning_action_required", False))
@@ -193,6 +193,8 @@ class QwenInteriorEngine:
             has_belongings = any(item.get("category") == "personal_belonging" for item in detected_items)
             has_trash = any(item.get("category") == "trash" for item in detected_items)
             has_stain = any(item.get("category") == "stain" for item in detected_items)
+            if clean_level == "clean" and not detected_items and not cleaning_req:
+                score = 100
 
             return {
                 "case_id": case_id,
@@ -259,7 +261,7 @@ class QwenInteriorEngine:
         view_name = "前車內" if image_type == 10 else "後車內"
         return {
             "cleanliness_level": "clean",
-            "score": 95,
+            "score": 100,
             "detected_items": [],
             "item_count": 0,
             "has_personal_belonging": False,
@@ -288,7 +290,7 @@ class QwenInteriorEngine:
         overlay = base_image.copy()
         h, w = overlay.shape[:2]
 
-        score = inspection_result.get("score", 95)
+        score = inspection_result.get("score", 100)
         level = inspection_result.get("cleanliness_level", "clean").lower()
         items = inspection_result.get("detected_items", [])
         has_belonging = inspection_result.get("has_personal_belonging", False)

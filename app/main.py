@@ -558,7 +558,7 @@ async def interior_inspect(
                 "vehicle_code": vehicle_code,
                 "image_type": image_type,
                 "cleanliness_level": res.get("cleanliness_level", "clean"),
-                "cleanliness_score": res.get("score", 95),
+                "cleanliness_score": res.get("score", 100),
                 "vlm_reasoning": res.get("vlm_reasoning", ""),
                 "detected_items": res.get("detected_items", []),
                 "cleaning_action_required": res.get("cleaning_action_required", False),
@@ -581,7 +581,7 @@ async def interior_inspect(
 
     return InteriorInspectResponse(
         cleanliness_level=res.get("cleanliness_level", "clean"),
-        score=res.get("score", 95),
+        score=res.get("score", 100),
         vlm_reasoning=res.get("vlm_reasoning", ""),
         detected_items=items,
         cleaning_action_required=res.get("cleaning_action_required", False),
@@ -739,7 +739,7 @@ async def evaluate_vehicle(req: VehicleEvaluateRequest):
 
             # 寫入 inspections 表，觸發 Supabase Realtime 與營運戰情室更新
             damage_sev = "severe" if eval_res["risk_level"] == "red" else ("minor" if eval_res["damaged_angles"] else "none")
-            int_score = eval_res.get("score_breakdown", {}).get("interior_score", 95)
+            int_score = eval_res.get("score_breakdown", {}).get("interior_score", 100)
             await insert_inspection({
                 "case_id": eval_res["case_id"],
                 "order_number": req.order_number,

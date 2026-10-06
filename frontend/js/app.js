@@ -68,6 +68,7 @@ class IGuardApp {
     this.renderSlotsGrid();
     this.initRealtimeSubscriptions();
     this.updateTelemetryHUD();
+    this.setDemoPickerVisibility(false);
     this.checkApiStatus();
     // Heartbeat check every 8 seconds
     setInterval(() => this.checkApiStatus(), 8000);
@@ -154,6 +155,63 @@ class IGuardApp {
     return !this.isPreTripPhoto(filepath);
   }
 
+  setDemoPickerVisibility(visible) {
+    const picker = document.getElementById("demo-vehicle-picker");
+    if (picker) picker.style.display = visible ? "flex" : "none";
+  }
+
+  async loadDemoVehicle(orderNumber) {
+    if (!orderNumber || !window.iguardAPI || window.iguardAPI.isBackendOnline) return;
+
+    const supabaseUrl = window.iguardSupabase && window.iguardSupabase.url;
+    const datasetRoot = supabaseUrl
+      ? `${supabaseUrl}/storage/v1/object/public/inspection-images/demo-vehicles`
+      : "";
+    const imageNames = [
+      ["取車", "左前方.png", "pre", "front-left.png"],
+      ["取車", "右前方.png", "pre", "front-right.png"],
+      ["取車", "左後方.png", "pre", "rear-left.png"],
+      ["取車", "右後方.png", "pre", "rear-right.png"],
+      ["還車", "左前方.png", "post", "front-left.png"],
+      ["還車", "右前方.png", "post", "front-right.png"],
+      ["還車", "左後方.png", "post", "rear-left.png"],
+      ["還車", "右後方.png", "post", "rear-right.png"],
+      ["還車", "前座艙.png", "post", "front-cabin.png"],
+      ["還車", "後座艙.png", "post", "rear-cabin.png"]
+    ];
+
+    const select = document.getElementById("demo-vehicle-select");
+    try {
+      if (!datasetRoot) {
+        throw new Error("Supabase Storage URL is not configured");
+      }
+      if (select) select.disabled = true;
+      const files = await Promise.all(imageNames.map(async ([phase, filename, remotePhase, remoteFilename]) => {
+        const rawUrl = `${datasetRoot}/${encodeURIComponent(orderNumber)}/${remotePhase}/${remoteFilename}`;
+        const response = await fetch(rawUrl);
+        if (!response.ok) {
+          throw new Error(`無法載入模擬資料：${filename} (${response.status})`);
+        }
+        const blob = await response.blob();
+        const file = new File([blob], filename, { type: blob.type || "image/png" });
+        Object.defineProperty(file, "webkitRelativePath", {
+          value: `${orderNumber}/${phase}/${filename}`,
+          configurable: true
+        });
+        return file;
+      }));
+
+      this.handleFolderSelected({ target: { files, value: "" } });
+      this.showToast(`已載入模擬車輛【${orderNumber}】，可開始全車智能檢驗`, "success");
+    } catch (err) {
+      console.error("Demo vehicle loading failed:", err);
+      this.showToast("模擬資料載入失敗，請重新整理頁面後再試", "error");
+      if (select) select.value = "";
+    } finally {
+      if (select) select.disabled = false;
+    }
+  }
+
   // ==========================================
   // Check Missing Angles
   // ==========================================
@@ -235,14 +293,11 @@ class IGuardApp {
       /\.(jpg|jpeg|png|jfif|webp)$/i.test(f.name)
     );
 
-    let matchedFilesCount = 0;
-
     imageFiles.forEach(file => {
       const fullPath = file.webkitRelativePath || file.name;
       const angle = this.parseAngleFromFilename(fullPath);
       if (!angle || !this.slots[angle]) return;
 
-      matchedFilesCount++;
       const slot = this.slots[angle];
       const objUrl = URL.createObjectURL(file);
       const baseNameNoExt = file.name.replace(/\.[^.]+$/, "").trim();
@@ -292,7 +347,7 @@ class IGuardApp {
     // Update Header Badges
     const badge = document.getElementById("selected-folder-badge");
     if (badge) {
-      badge.textContent = `${folderName} (共載入 ${matchedFilesCount} 張相片)`;
+      badge.textContent = folderName;
       badge.className = `slot-status-pill ${missingInfo.hasMissing ? "warn" : "passed"}`;
     }
 
@@ -301,13 +356,13 @@ class IGuardApp {
       if (missingInfo.hasMissing) {
         meta.textContent = `偵測到部分角度相片缺少：${missingInfo.summaryText}`;
       } else {
-        meta.textContent = "全車 6 大標準視角照片已完整備妥（取車 4 角度 + 還車 6 角度），可進行智能差分檢驗。";
+        meta.textContent = "取車與還車的照片已準備完成，可以開始檢查車況。";
       }
     }
 
     const subtitle = document.getElementById("vehicle-summary-subtitle");
     if (subtitle) {
-      subtitle.textContent = `目前檢驗車輛：${folderName} — 照片載入完成，已自動依檔名匹配取車與還車各角度影像。`;
+      subtitle.textContent = `目前檢驗車輛：${folderName} — 照片載入完成，系統會自動比對取車與還車時的車況。`;
     }
 
     // Missing Angles Warning Banner
@@ -661,7 +716,7 @@ class IGuardApp {
 
     const subtitle = document.getElementById("vehicle-summary-subtitle");
     if (subtitle) {
-      subtitle.textContent = "系統將依檔名自動載入取車照與還車照，透過幾何對齊與特徵差分，精準判定是否有「本次新增車損」（自動排除借車前既有舊痕）。";
+      subtitle.textContent = "系統會自動比對取車與還車照片，判斷是否出現新的車損，並排除原本就有的刮痕。";
     }
 
     const alertBanner = document.getElementById("missing-angles-alert");
@@ -1156,12 +1211,14 @@ class IGuardApp {
     try {
       const res = await window.iguardAPI.checkHealth();
       if (res.online) {
+        this.setDemoPickerVisibility(false);
         dot.style.background = "#00e676";
         dot.style.boxShadow = "0 0 10px #00e676";
         text.textContent = "本地端成功連接";
         text.style.color = "var(--text-primary)";
         if (btn) btn.title = "本地端 5090 已成功連接 (點擊查看連線資訊)";
       } else {
+        this.setDemoPickerVisibility(true);
         dot.style.background = "#ffb300";
         dot.style.boxShadow = "none";
         text.textContent = "模擬展示模式";
@@ -1169,6 +1226,7 @@ class IGuardApp {
         if (btn) btn.title = "目前為模擬展示模式 (點擊設定本地端連線網址)";
       }
     } catch {
+      this.setDemoPickerVisibility(true);
       dot.style.background = "#ffb300";
       dot.style.boxShadow = "none";
       text.textContent = "模擬展示模式";

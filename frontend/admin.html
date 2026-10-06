@@ -473,7 +473,14 @@
 
       async updateWorkOrderStatus(workOrderId, status) {
         if (!window.iguardAPI || !window.iguardAPI.isBackendOnline) {
-          this.showToast("後端未連線，無法更新工單狀態", "error");
+          const workOrder = this.liveWorkOrders.find(item => item.work_order_id === workOrderId);
+          if (!workOrder) {
+            this.showToast("找不到要更新的模擬工單", "error");
+            return;
+          }
+          workOrder.status = status;
+          this.renderLiveWorkOrdersTable(this.liveWorkOrders);
+          this.showToast(status === "completed" ? "模擬工單已標記為已處理" : "模擬工單已切換為正在處理", "success");
           return;
         }
         try {
@@ -562,117 +569,21 @@
       }
 
       renderSimulatedData() {
-        const tbody = document.getElementById("inspections-table-body");
-        if (tbody) {
-          tbody.innerHTML = `
-            <tr>
-              <td class="mono"><strong>CASE-992145</strong></td>
-              <td><strong class="text-cyan">RCR-7661</strong></td>
-              <td>6/6 全視角</td>
-              <td><span class="mono">100 分</span></td>
-              <td><span class="mono">96 分</span></td>
-              <td><strong class="text-green mono">98 分</strong></td>
-              <td><span class="text-green">全車無異常</span></td>
-              <td><span class="triage-badge green">綠色放行</span></td>
-              <td><button class="btn btn-secondary" style="padding: 3px 8px; font-size: 11px;" onclick="window.adminWarRoom.openInspectionDiag('CASE-992145', 'RCR-7661', 'green')">檢視</button></td>
-            </tr>
-            <tr>
-              <td class="mono"><strong>CASE-992144</strong></td>
-              <td><strong class="text-red">RCX-5100</strong></td>
-              <td>6/6 全視角</td>
-              <td><span class="mono text-red">65 分</span></td>
-              <td><span class="mono">90 分</span></td>
-              <td><strong class="text-red mono">52 分</strong></td>
-              <td><span class="text-red">右前保險桿中度擦傷</span></td>
-              <td><span class="triage-badge red">紅色阻斷</span></td>
-              <td><button class="btn btn-primary" style="padding: 3px 8px; font-size: 11px;" onclick="window.adminWarRoom.openInspectionDiag('CASE-992144', 'RCX-5100', 'red')">車損</button></td>
-            </tr>
-            <tr>
-              <td class="mono"><strong>CASE-992143</strong></td>
-              <td><strong class="text-yellow">BAP-1234</strong></td>
-              <td>6/6 全視角</td>
-              <td><span class="mono">92 分</span></td>
-              <td><span class="mono text-yellow">68 分</span></td>
-              <td><strong class="text-yellow mono">78 分</strong></td>
-              <td><span class="text-yellow">中央杯架遺留飲料杯</span></td>
-              <td><span class="triage-badge yellow">黃色待審</span></td>
-              <td><button class="btn btn-secondary" style="padding: 3px 8px; font-size: 11px;" onclick="window.adminWarRoom.openInspectionDiag('CASE-992143', 'BAP-1234', 'yellow')">檢視</button></td>
-            </tr>
-            <tr>
-              <td class="mono"><strong>CASE-992142</strong></td>
-              <td><strong class="text-cyan">RDF-8822</strong></td>
-              <td>6/6 全視角</td>
-              <td><span class="mono">100 分</span></td>
-              <td><span class="mono">100 分</span></td>
-              <td><strong class="text-green mono">100 分</strong></td>
-              <td><span class="text-green">全車無異常</span></td>
-              <td><span class="triage-badge green">綠色放行</span></td>
-              <td><button class="btn btn-secondary" style="padding: 3px 8px; font-size: 11px;" onclick="window.adminWarRoom.openInspectionDiag('CASE-992142', 'RDF-8822', 'green')">檢視</button></td>
-            </tr>
-          `;
-        }
+        this.liveInspections = [
+          { case_id: "CASE-992145", vehicle_code: "RCR-7661", risk_level: "green", cleanliness_score: 96, risk_reason: "全車無異常" },
+          { case_id: "CASE-992144", vehicle_code: "RCX-5100", risk_level: "red", damage_severity: "moderate", cleanliness_score: 90, risk_reason: "右前保險桿中度擦傷" },
+          { case_id: "CASE-992143", vehicle_code: "BAP-1234", risk_level: "yellow", cleanliness_score: 68, risk_reason: "中央杯架遺留飲料杯" },
+          { case_id: "CASE-992142", vehicle_code: "RDF-8822", risk_level: "green", cleanliness_score: 100, risk_reason: "全車無異常" }
+        ];
+        this.liveWorkOrders = [
+          { work_order_id: "WO-992140", vehicle_code: "RCX-5100", category: "repair", priority: "urgent", status: "open" },
+          { work_order_id: "WO-992138", vehicle_code: "BAP-1234", category: "cleaning", priority: "high", status: "in_progress" },
+          { work_order_id: "WO-992135", vehicle_code: "RDF-8822", category: "cleaning", priority: "normal", status: "completed" }
+        ];
 
-        const woTbody = document.getElementById("work-orders-table-body");
-        if (woTbody) {
-          woTbody.innerHTML = `
-            <tr>
-              <td class="mono"><strong>WO-992140</strong></td>
-              <td class="text-red">RCX-5100</td>
-              <td>鈑噴維修</td>
-              <td><span class="triage-badge red">緊急</span></td>
-            </tr>
-            <tr>
-              <td class="mono"><strong>WO-992138</strong></td>
-              <td class="text-yellow">BAP-1234</td>
-              <td>內裝清潔</td>
-              <td><span class="triage-badge yellow">處理中</span></td>
-            </tr>
-            <tr>
-              <td class="mono"><strong>WO-992135</strong></td>
-              <td>RDF-8822</td>
-              <td>微光重拍</td>
-              <td><span class="status-pill">已完工</span></td>
-            </tr>
-          `;
-        }
-
-        // Reset KPIs for offline simulation
-        const kpiTotal = document.getElementById("kpi-total-inspections");
-        const kpiTotalSub = document.getElementById("kpi-total-sub");
-        const kpiGreen = document.getElementById("kpi-green-pass-rate");
-        const kpiGreenSub = document.getElementById("kpi-green-sub");
-        const kpiYellow = document.getElementById("kpi-yellow-review-count");
-        const kpiYellowSub = document.getElementById("kpi-yellow-sub");
-        const kpiRed = document.getElementById("kpi-red-alert-count");
-        const kpiRedSub = document.getElementById("kpi-red-sub");
-
-        if (kpiTotal) kpiTotal.innerHTML = `1,248 <span style="font-size: 14px; font-weight: normal; color: var(--text-muted);">輛</span>`;
-        if (kpiTotalSub) {
-          kpiTotalSub.textContent = "較昨日同期增長 18.5% (模擬展示數據)";
-          kpiTotalSub.className = "metric-sub text-green";
-        }
-        if (kpiGreen) kpiGreen.textContent = "94.2%";
-        if (kpiGreenSub) {
-          kpiGreenSub.textContent = "1,176 輛次秒級自動還車上架 (模擬)";
-          kpiGreenSub.className = "metric-sub";
-        }
-        if (kpiYellow) kpiYellow.innerHTML = `12 <span style="font-size: 14px; font-weight: normal; color: var(--text-muted);">輛</span>`;
-        if (kpiYellowSub) {
-          kpiYellowSub.textContent = "平均複審時間: 1.8 分鐘 (模擬)";
-          kpiYellowSub.className = "metric-sub";
-        }
-        if (kpiRed) kpiRed.innerHTML = `8 <span style="font-size: 14px; font-weight: normal; color: var(--text-muted);">輛</span>`;
-        if (kpiRedSub) {
-          kpiRedSub.textContent = "5 輛車損補漆 / 3 輛內裝深度清潔 (模擬)";
-          kpiRedSub.className = "metric-sub";
-        }
-
-        if (this.triageChart) {
-          this.triageChart.data.datasets[0].data = [94.2, 4.2, 1.6];
-          this.triageChart.data.datasets[0].backgroundColor = ["#10b981", "#f59e0b", "#ef4444"];
-          this.triageChart.data.labels = ["綠色放行 (94.2%)", "黃色待審 (4.2%)", "紅色派工 (1.6%)"];
-          this.triageChart.update();
-        }
+        this.renderLiveInspectionsTable(this.liveInspections);
+        this.renderLiveWorkOrdersTable(this.liveWorkOrders);
+        this.updateLiveKPIs(this.liveInspections);
       }
 
       initRealtimeSubscriptions() {

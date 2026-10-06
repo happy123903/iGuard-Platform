@@ -41,6 +41,7 @@ outputs/*.jfif
 outputs/*.webp
 outputs/step*/
 outputs/fresh*/
+frontend/demo-data/
 *.log
 # 評測報告可能包含訂單、車牌或其他營運資料，不提交到公開版本庫
 outputs/benchmark_report.md

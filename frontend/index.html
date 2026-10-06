@@ -67,6 +67,14 @@
             <svg class="ui-icon" viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
             選取車輛相片資料夾
           </button>
+          <label id="demo-vehicle-picker" style="display: none; align-items: center; gap: 8px; font-size: 13px; color: var(--text-secondary);">
+            <span style="font-weight: 700; color: #ffb300;">模擬資料快速選擇</span>
+            <select id="demo-vehicle-select" class="btn btn-secondary" style="min-width: 190px; padding: 9px 12px; font-size: 12px;" onchange="window.iguardApp.loadDemoVehicle(this.value)">
+              <option value="">請選擇展示車輛</option>
+              <option value="ORDER-038">ORDER-038</option>
+              <option value="ORDER-044">ORDER-044</option>
+            </select>
+          </label>
           <span style="font-size: 13px; color: var(--text-secondary);">選取包含【取車基準照】與【還車現況照】之車輛資料夾</span>
         </div>
 
@@ -83,7 +91,7 @@
         <div style="display: flex; align-items: center; gap: 10px; font-size: 13px;">
           <span style="font-weight: 700; color: var(--text-secondary);">目前檢驗車輛：</span>
           <span class="slot-status-pill empty" id="selected-folder-badge" style="font-size: 13px; padding: 4px 12px;">尚未選取車輛資料夾</span>
-          <span style="font-size: 12px; color: var(--text-muted);" id="selected-folder-meta">點擊上方按鈕選取電腦中的車輛資料夾（自動比對取車 vs 還車以判定本次新增車損）</span>
+          <span style="font-size: 12px; color: var(--text-muted);" id="selected-folder-meta">點擊上方按鈕選取電腦中的車輛資料夾（系統會比對取車與還車時的車況）</span>
         </div>
         <input type="hidden" id="vehicle-code-input" value="">
       </div>
@@ -98,7 +106,7 @@
             整車 6 大標準視角影像檢驗
           </div>
           <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;" id="vehicle-summary-subtitle">
-            系統將依檔名自動載入取車照與還車照，透過幾何對齊與特徵差分，精準判定是否有「本次新增車損」（自動排除借車前既有舊痕）。
+            系統會自動比對取車與還車照片，判斷是否出現新的車損，並排除原本就有的刮痕。
           </div>
         </div>
 
@@ -141,7 +149,7 @@
           <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
             <span class="phase-badge post">區塊二</span>
             <span class="phase-title">還車時的影像（本次還車檢驗照）</span>
-            <span style="font-size: 12px; color: var(--text-muted);">共 6 大標準視角（4 大外觀 + 2 大車室座艙），進行車損差分與整潔度推理</span>
+            <span style="font-size: 12px; color: var(--text-muted);">共 6 個標準視角（4 個外觀 + 2 個車室），檢查車損與車內整潔</span>
           </div>
           <span class="slot-status-pill empty" id="post-slots-count-badge">待載入還車照 (0/6)</span>
         </div>

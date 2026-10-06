@@ -126,16 +126,16 @@ class IGuardDiffRenderer {
         ctx.restore();
 
         this.drawHudOverlay(ctx, {
-          title: "SSIM 座艙多模態差分: 0.812 (檢出異物遺留)",
-          subtitle: `差異區域: ${targetCoords.region} | 異物置杯架 | 需人工整理`,
+          title: "車內檢查：發現異物",
+          subtitle: `發現位置：${targetCoords.region} | 請安排人員清理`,
           statusColor: "#f59e0b"
         });
       } else {
         // Clean interior alignment
         this.drawAlignmentGrid(ctx, "#10b981");
         this.drawHudOverlay(ctx, {
-          title: "SSIM 座艙整潔度差分對比: 99.2% (完全吻合)",
-          subtitle: "座艙整潔無異物遺留 • 無乘客私人物品 • 符合上架標準",
+          title: "車內檢查：整潔合格",
+          subtitle: "車內沒有發現垃圾或遺留物品，可正常提供使用",
           statusColor: "#10b981"
         });
       }
@@ -170,8 +170,8 @@ class IGuardDiffRenderer {
       this.drawFeaturePoints(ctx, targetCoords, true);
 
       this.drawHudOverlay(ctx, {
-        title: `SSIM 差分檢出: 【本次租車新增車損】 (ΔE = 48.6%)`,
-        subtitle: `SuperPoint + LightGlue 對齊精度 98.4% | 檢出位置: ${damageRegion || targetCoords.region}`,
+        title: "車外檢查：發現新的車損",
+        subtitle: `發現位置：${damageRegion || targetCoords.region} | 請安排人員確認`,
         statusColor: "#ef4444"
       });
     } else if (isPreExisting) {
@@ -188,8 +188,8 @@ class IGuardDiffRenderer {
       this.drawFeaturePoints(ctx, targetCoords, false);
 
       this.drawHudOverlay(ctx, {
-        title: "SSIM 差分確認: 【借車前既有舊痕】 (免責排除)",
-        subtitle: `特徵點 100% 吻合借車存證照 | 責任判定: 租客全額免責 (不扣分)`,
+        title: "車外檢查：原本就有的刮痕",
+        subtitle: "和取車時的照片相同，不列入本次車況責任",
         statusColor: "#f59e0b"
       });
     } else {
@@ -198,8 +198,8 @@ class IGuardDiffRenderer {
       this.drawFeaturePoints(ctx, null, false);
 
       this.drawHudOverlay(ctx, {
-        title: "SSIM 結構相似度: 99.6% (取還車外觀零差異)",
-        subtitle: "SuperPoint 幾何對齊完成 • 342 處特徵點吻合 • 車身漆面完好無損",
+        title: "車外檢查：沒有發現新的車損",
+        subtitle: "和取車時的照片比對後，車身外觀維持良好",
         statusColor: "#10b981"
       });
     }

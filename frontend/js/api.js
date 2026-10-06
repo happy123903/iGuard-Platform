@@ -500,7 +500,7 @@ class IGuardAPI {
 
     let conclusion = "";
     if (riskLevel === "green") {
-      conclusion = `【全車綜合判定：綠色合格 (Green Pass) | 全車總評分: ${overallVehicleScore}/100 分】\n全車無異常。經取車 vs 還車影像幾何對齊與 SSIM 結構特徵差分，外觀無新增損傷，車內座艙清潔且無乘客遺留物品。車況優良，系統已自動歸檔結案，押金即時結清並釋出供下位租客預約。`;
+      conclusion = `【全車綜合判定：綠色合格 (Green Pass) | 全車總評分: ${overallVehicleScore}/100 分】\n全車無異常。系統比對取車與還車照片後，確認外觀沒有新增損傷，車內也保持整潔且沒有遺留物品。車況良好，系統已自動完成檢查並開放下一位租客預約。`;
     } else if (riskLevel === "yellow") {
       conclusion = `【全車綜合判定：黃色待審 (Yellow Review) | 全車總評分: ${overallVehicleScore}/100 分】\n異常項目：${abnormalities.join("；")}。車況基本安全但需進一步核實，系統已標註相關特徵，由營運後台 30 秒內快速確認。`;
     } else {
