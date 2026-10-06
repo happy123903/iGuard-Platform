@@ -508,9 +508,15 @@ class IGuardApp {
           `;
         }
       } else if (def.category === "int" && hasPhoto && slot.aiAnalyzed) {
+        const cleanlinessLabel = slot.cleanlinessLevel === "dirty"
+          ? "髒污"
+          : (slot.cleanlinessLevel === "fair" ? "普通" : "乾淨");
+        const cleanlinessClass = slot.cleanlinessLevel === "dirty"
+          ? "new-damage"
+          : (slot.cleanlinessLevel === "fair" ? "exempt" : "clean");
         diffTagHtml = `
           <div style="margin-bottom: 6px;">
-            <span class="slot-diff-tag clean">座艙整潔 ${slot.cleanlinessScore}分</span>
+            <span class="slot-diff-tag ${cleanlinessClass}">座艙${cleanlinessLabel}</span>
           </div>
         `;
       } else if (hasPhoto && !slot.aiAnalyzed) {
@@ -940,10 +946,7 @@ class IGuardApp {
       }
     }
 
-    if (intScoreElem) {
-      intScoreElem.textContent = intScore >= 90 ? "乾淨" : "髒污";
-      intScoreElem.className = `mono interior-cleanliness-status ${intScore >= 90 ? "clean" : "dirty"}`;
-    }
+    if (intScoreElem) intScoreElem.textContent = `${intScore} 分`;
     if (intBar) intBar.style.width = `${intScore}%`;
     if (intDesc) {
       if (intScore >= 90) {
