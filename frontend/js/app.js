@@ -155,13 +155,31 @@ class IGuardApp {
     return !this.isPreTripPhoto(filepath);
   }
 
-  setDemoPickerVisibility(visible) {
+  setDemoPickerVisibility(visible, mode = "offline") {
     const picker = document.getElementById("demo-vehicle-picker");
-    if (picker) picker.style.display = visible ? "flex" : "none";
+    const label = picker?.querySelector("span");
+    const select = document.getElementById("demo-vehicle-select");
+    if (!picker) return;
+
+    picker.style.display = visible ? "flex" : "none";
+    if (!select) return;
+
+    const vehicles = mode === "local"
+      ? ["ORDER-021", "ORDER-034"]
+      : ["ORDER-038", "ORDER-044"];
+    if (label) {
+      label.textContent = mode === "local"
+        ? "本地端測試資料快速選擇"
+        : "模擬資料快速選擇";
+    }
+    select.innerHTML = [
+      '<option value="">請選擇測試車輛</option>',
+      ...vehicles.map(orderNumber => `<option value="${orderNumber}">${orderNumber}</option>`)
+    ].join("");
   }
 
   async loadDemoVehicle(orderNumber) {
-    if (!orderNumber || !window.iguardAPI || window.iguardAPI.isBackendOnline) return;
+    if (!orderNumber) return;
 
     const supabaseUrl = window.iguardSupabase && window.iguardSupabase.url;
     const datasetRoot = supabaseUrl
@@ -202,7 +220,8 @@ class IGuardApp {
       }));
 
       this.handleFolderSelected({ target: { files, value: "" } });
-      this.showToast(`已載入模擬車輛【${orderNumber}】，可開始全車智能檢驗`, "success");
+      const modeText = window.iguardAPI?.isBackendOnline ? "本地端測試車輛" : "模擬車輛";
+      this.showToast(`已載入${modeText}【${orderNumber}】，可開始全車智能檢驗`, "success");
     } catch (err) {
       console.error("Demo vehicle loading failed:", err);
       this.showToast("模擬資料載入失敗，請重新整理頁面後再試", "error");
@@ -1211,14 +1230,14 @@ class IGuardApp {
     try {
       const res = await window.iguardAPI.checkHealth();
       if (res.online) {
-        this.setDemoPickerVisibility(false);
+        this.setDemoPickerVisibility(true, "local");
         dot.style.background = "#00e676";
         dot.style.boxShadow = "0 0 10px #00e676";
         text.textContent = "本地端成功連接";
         text.style.color = "var(--text-primary)";
         if (btn) btn.title = "本地端 5090 已成功連接 (點擊查看連線資訊)";
       } else {
-        this.setDemoPickerVisibility(true);
+        this.setDemoPickerVisibility(true, "offline");
         dot.style.background = "#ffb300";
         dot.style.boxShadow = "none";
         text.textContent = "模擬展示模式";
@@ -1226,7 +1245,7 @@ class IGuardApp {
         if (btn) btn.title = "目前為模擬展示模式 (點擊設定本地端連線網址)";
       }
     } catch {
-      this.setDemoPickerVisibility(true);
+      this.setDemoPickerVisibility(true, "offline");
       dot.style.background = "#ffb300";
       dot.style.boxShadow = "none";
       text.textContent = "模擬展示模式";
