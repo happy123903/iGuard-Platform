@@ -19,12 +19,12 @@ class IGuardApp {
 
     // Standard Angles Configuration
     this.angleDefs = [
-      { type: 1, name: "左前方", category: "ext", categoryZh: "外觀 45%", desc: "左前方 45° 視角" },
-      { type: 2, name: "右前方", category: "ext", categoryZh: "外觀 45%", desc: "右前方 45° 視角" },
-      { type: 3, name: "左後方", category: "ext", categoryZh: "外觀 45%", desc: "左後方 45° 視角" },
-      { type: 4, name: "右後方", category: "ext", categoryZh: "外觀 45%", desc: "右後方 45° 視角" },
-      { type: 10, name: "前座艙", category: "int", categoryZh: "座艙 55%", desc: "前座中控台與座椅全景" },
-      { type: 11, name: "後座艙", category: "int", categoryZh: "座艙 55%", desc: "後排座椅與腳踏墊全景" }
+      { type: 1, name: "左前方", category: "ext", categoryZh: "外觀", desc: "左前方 45° 視角" },
+      { type: 2, name: "右前方", category: "ext", categoryZh: "外觀", desc: "右前方 45° 視角" },
+      { type: 3, name: "左後方", category: "ext", categoryZh: "外觀", desc: "左後方 45° 視角" },
+      { type: 4, name: "右後方", category: "ext", categoryZh: "外觀", desc: "右後方 45° 視角" },
+      { type: 10, name: "前座艙", category: "int", categoryZh: "座艙", desc: "前座中控台與座椅全景" },
+      { type: 11, name: "後座艙", category: "int", categoryZh: "座艙", desc: "後排座椅與腳踏墊全景" }
     ];
 
     this.preAngleTypes = [1, 2, 3, 4];
@@ -633,6 +633,7 @@ class IGuardApp {
 
   clearAllSlots() {
     this.currentPlate = "";
+    this.vehicleEvaluation = null;
     this.resetSlotsState();
 
     const folderInput = document.getElementById("vehicle-folder-input");
@@ -666,6 +667,17 @@ class IGuardApp {
     this.renderSlotsGrid();
     this.updateRunButtonState();
     this.showToast("已清空車輛選擇與相片", "info");
+  }
+
+  startNewInspection() {
+    if (this.isInspecting) return;
+    this.closeDiagnosticModal();
+    this.clearAllSlots();
+    this.showToast("已清除上一筆檢驗，請選取新的車輛資料夾", "info");
+    const folderInput = document.getElementById("vehicle-folder-input");
+    if (folderInput) {
+      setTimeout(() => folderInput.click(), 150);
+    }
   }
 
   // ==========================================

@@ -955,6 +955,17 @@ h1, h2, h3, h4, h5, h6 {
   font-size: 11px;
 }
 
+.work-order-table td:last-child {
+  min-width: 150px;
+  white-space: normal;
+  line-height: 1.7;
+}
+
+.work-order-table .status-pill,
+.work-order-table .triage-badge {
+  vertical-align: middle;
+}
+
 .custom-table tr:hover td {
   background: rgba(255, 255, 255, 0.03);
 }
@@ -1834,6 +1845,28 @@ h1, h2, h3, h4, h5, h6 {
   margin-bottom: 16px;
 }
 
+.report-section {
+  position: relative;
+  overflow: hidden;
+}
+
+.report-section-title {
+  display: block;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  margin-bottom: 8px;
+}
+
+.report-section-body {
+  color: var(--text-primary);
+  font-size: 13px;
+  line-height: 1.8;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
 .abnormal-notes-box.clean {
   background: rgba(16, 185, 129, 0.08);
   border-color: rgba(16, 185, 129, 0.25);
@@ -1846,21 +1879,57 @@ h1, h2, h3, h4, h5, h6 {
 
 .conclusion-paragraph {
   font-size: 13px;
-  line-height: 1.7;
+  line-height: 1.85;
   color: var(--text-secondary);
-  background: var(--bg-surface-elevated);
-  padding: 14px 16px;
+  background: linear-gradient(135deg, rgba(0, 240, 255, 0.08), var(--bg-surface-elevated));
+  padding: 17px 20px;
   border-radius: var(--radius-md);
-  border: 1px solid var(--border-subtle);
+  border: 1px solid rgba(0, 240, 255, 0.2);
   margin-bottom: 16px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 .work-order-summary-card {
-  background: rgba(239, 68, 68, 0.06);
-  border: 1px solid rgba(239, 68, 68, 0.25);
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(239, 68, 68, 0.03));
+  border: 1px solid rgba(239, 68, 68, 0.3);
   border-radius: var(--radius-md);
-  padding: 16px;
+  padding: 18px 20px;
   margin-top: 16px;
+}
+
+.work-order-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 11px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid rgba(239, 68, 68, 0.18);
+}
+
+.work-order-guide {
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.85;
+  margin: 0 0 14px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.work-order-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 20px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  font-size: 11px;
+  font-family: var(--font-mono);
+}
+
+.work-order-meta strong {
+  color: var(--text-primary);
 }
 
 .work-order-summary-card.cleaning {
